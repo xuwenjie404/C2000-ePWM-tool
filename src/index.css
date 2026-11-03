@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+/* legacy/ 是重构前的单文件存档，不参与构建：不扫描它的 class，避免撑大 CSS */
+@source not '../legacy';
+
+@layer base {
+  /*
+   * 全局排版约束：所有文字不小于 16px（12pt），
+   * 便于在投屏 / 图纸评审 / 现场调试时直接阅读。
+   */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: #070b12;
+    color: #e2e8f0;
+    font-family:
+      'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Cascadia Code', Consolas, 'Courier New', monospace;
+    font-variant-ligatures: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+}
+
+/* 细滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 拖动波形手柄时避免选中文字 */
+.dragging,
+.dragging * {
+  user-select: none;
+  cursor: ew-resize !important;
+}
+
+@keyframes pulse-ring {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.animate-soft-pulse {
+  animation: pulse-ring 1.8s ease-in-out infinite;
+}
