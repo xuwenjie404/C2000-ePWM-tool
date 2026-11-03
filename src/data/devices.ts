@@ -1,3 +1,4 @@
+import { createRegistry } from '../platform/registry';
 import type { DeviceModel, PinOption } from '../types';
 
 /**
@@ -157,6 +158,13 @@ export const DEVICES: Record<string, DeviceModel> = {
 export const DEVICE_IDS = Object.keys(DEVICES);
 
 export const DEFAULT_DEVICE_ID = 'F280039C';
+
+/**
+ * 器件注册表。
+ * 第三方器件包可以在运行时追加：deviceRegistry.register(customDevice)
+ * UI 与计算内核都从这里取器件，不需要改动任何组件。
+ */
+export const deviceRegistry = createRegistry<DeviceModel>('device').registerAll(Object.values(DEVICES));
 
 /** 取某信号的第 idx 个复用选项（越界时回退到第 0 个） */
 export function getMuxOption(device: DeviceModel, signal: string, idx: number): PinOption | undefined {

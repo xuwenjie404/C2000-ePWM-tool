@@ -1,0 +1,58 @@
+name: Bug report / 缺陷报告
+description: 生成的代码不对、波形不对、界面报错等问题
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请尽量附上**工程配置**，否则很难复现：界面上点「分享链接」，把 `#p=...` 那段贴进下面的字段即可。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 现象
+      description: 发生了什么？期望是什么？
+      placeholder: 例如：死区设 900 ns 后波形显示 A 相恒低，但界面没有报错。
+    validations:
+      required: true
+
+  - type: textarea
+    id: project
+    attributes:
+      label: 工程配置（分享链接或 JSON）
+      description: 界面右上角「分享链接」复制的内容，或导出的 .epwm.json
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: 器件型号与封装
+      placeholder: TMS320F280039C / 64-Pin PM
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      options:
+        - 生成的 C 代码
+        - 死区 / 波形显示
+        - 时基 / 频率计算
+        - 引脚复用
+        - 校验规则（误报 / 漏报）
+        - 界面 / 交互
+        - CLI / 内核 API
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 依据（可选但强烈建议）
+      description: TRM 章节号、数据手册页码、示波器截图说明等
+    validations:
+      required: false

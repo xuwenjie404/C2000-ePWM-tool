@@ -1,0 +1,45 @@
+name: Feature request / 功能建议
+description: 新器件、新拓扑、新校验规则、新输出格式等
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到的实际问题
+      description: 不要直接写方案，先说清场景 —— 这决定了它该落在哪个扩展点。
+      placeholder: 例如：我用 F2800137 做 LLC，但器件列表里没有它，每次都要手改寄存器。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: extension
+    attributes:
+      label: 你希望它属于哪类扩展
+      description: 不确定就选「不确定」，维护者会判断。
+      options:
+        - 新增器件（data/devices.ts）
+        - 新增拓扑（data/topologies.ts）
+        - 新增校验规则（lib/rules/）
+        - 新增代码生成目标（lib/targets/）
+        - 内核 API / CLI
+        - 界面交互
+        - 不确定
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的行为
+      description: 如果有具体参数、寄存器或格式要求，请一并写清。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: 参与意愿
+      options:
+        - label: 我可以提交 PR
+        - label: 我可以提供数据手册依据

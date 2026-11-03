@@ -1,9 +1,9 @@
 {
   "name": "c2000-epwm-tool",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
-  "description": "TI C2000 DSP ePWM 图形化设计器：时基求解、RED/FED 独立死区仿真、移相同步、SPWM/SVPWM 调制、Trip-Zone 保护、引脚复用与 C 代码生成",
+  "description": "TI C2000 ePWM 图形化配置与代码生成平台：headless 内核 + 注册表扩展点 + CLI，覆盖时基/死区仿真/移相/SPWM/SVPWM/Trip-Zone",
   "keywords": [
     "c2000",
     "tms320f280039c",
@@ -21,12 +21,15 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:engine": "vite build --config vite.engine.config.ts",
+    "build:all": "npm run build && npm run build:engine",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:restricted": "vitest run --configLoader native",
-    "build:restricted": "tsc --noEmit && vite build --configLoader native"
+    "build:restricted": "tsc --noEmit && vite build --configLoader native",
+    "epwm": "node bin/epwm.mjs"
   },
   "dependencies": {
     "react": "19.3.1",
@@ -37,6 +40,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.2.1",
+    "ajv": "^8.20.0",
     "tailwindcss": "4.3.4",
     "typescript": "5.9.3",
     "vite": "8.3.5",

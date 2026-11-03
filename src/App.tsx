@@ -12,10 +12,11 @@ import { CodePanel } from './components/CodePanel';
 import { Badge } from './components/ui';
 import { Icon } from './components/Icon';
 import { makeChannel } from './data/presets';
+import { getTopology } from './data/topologies';
 import { DEVICES } from './data/devices';
 import { resolveHardware } from './lib/hardware';
 import { validateProject } from './lib/validation';
-import { generateCode, generateSingleFile } from './lib/codegen';
+import { generateCode, generateSingleFile } from './lib/targets';
 import { computeModulationInstant } from './lib/modulation';
 import {
   MAX_CHANNELS,
@@ -31,51 +32,6 @@ import { copyText, downloadJson, downloadText, readTextFile } from './lib/io';
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const round1 = (v: number) => Math.round(v * 10) / 10;
-
-/* ------------------------------------------------------------------ *
- * 拓扑模板：切换相数/子拓扑时重建通道
- * ------------------------------------------------------------------ */
-function topologyChannels(sub: string, prev: ProjectState): ChannelConfig[] {
-  // 切换拓扑时沿用当前调好的死区值，避免每次都要重调
-  const db = prev.channels[0]?.redNs ?? 200;
-
-  if (sub === '1P_HB') {
-    return [makeChannel({ id: 1, name: '半桥主桥臂', redNs: db, fedNs: db })];
-  }
-  if (sub === '1P_FB') {
-    return [
-      makeChannel({ id: 1, name: '超前桥臂 (Leading)', phase: 0, redNs: db, fedNs: db }),
-      makeChannel({ id: 2, name: '滞后桥臂 (Lagging)', phase: 180, redNs: db, fedNs: db }),
-    ];
-  }
-  if (sub === '1P_TOTEM') {
-    return [
-      makeChannel({ id: 1, name: '高频快管臂', duty: 90, redNs: 60, fedNs: 60 }),
-      makeChannel({
-        id: 2,
-        name: '工频慢管臂 (50 Hz)',
-        independentFreq: true,
-        customFreqKhz: 0.05,
-        duty: 50,
-        redNs: 2000,
-        fedNs: 2000,
-      }),
-    ];
-  }
-  if (sub === '3P_4LEG') {
-    return ['U 相桥臂', 'V 相桥臂', 'W 相桥臂', 'N 相中线桥臂'].map((name, i) =>
-      makeChannel({ id: i + 1, name, redNs: db, fedNs: db }),
-    );
-  }
-  if (sub === '3P_INTERLEAVED') {
-    return [0, 120, 240].map((phase, i) =>
-      makeChannel({ id: i + 1, name: `交错相 ${i + 1} (${phase}°)`, phase, redNs: 150, fedNs: 150 }),
-    );
-  }
-  return ['U 相桥臂', 'V 相桥臂', 'W 相桥臂'].map((name, i) =>
-    makeChannel({ id: i + 1, name, redNs: db, fedNs: db }),
-  );
-}
 
 export default function App() {
   const [project, setProject] = useState<ProjectState>(() => {
@@ -215,17 +171,19 @@ export default function App() {
   }, []);
 
   const handleTopology = useCallback((sys: '1P' | '3P', sub: string) => {
+    const topology = getTopology(sub);
     setProject(prev => {
-      const channels = topologyChannels(sub, prev);
+      const channels = topology ? topology.build(prev) : prev.channels;
+      const phaseSystem = topology?.phaseSystem ?? sys;
       let modulationMode = prev.modulationMode;
-      if (sys === '1P' && modulationMode === 'SVPWM') modulationMode = 'SPWM';
+      if (phaseSystem === '1P' && modulationMode === 'SVPWM') modulationMode = 'SPWM';
       return {
         ...prev,
-        phaseSystem: sys,
+        phaseSystem,
         subTopology: sub,
         channels,
         modulationMode,
-        threePhaseSyncLock: sys === '3P' ? prev.threePhaseSyncLock : false,
+        threePhaseSyncLock: phaseSystem === '3P' ? prev.threePhaseSyncLock : false,
       };
     });
     setPlaying(false);
@@ -372,11 +330,9 @@ export default function App() {
               files={files}
               activeName={activeFileName}
               onActiveName={setActiveFileName}
-              style={project.codeStyle}
+              target={project.codeTarget}
               lang={project.commentLang}
-              onStyle={() =>
-                patch({ codeStyle: project.codeStyle === 'BITFIELD' ? 'DRIVERLIB' : 'BITFIELD' })
-              }
+              onTarget={t => patch({ codeTarget: t })}
               onLang={() => patch({ commentLang: project.commentLang === 'CN' ? 'EN' : 'CN' })}
               onCopy={handleCopyCode}
               onDownloadFile={handleDownloadFile}

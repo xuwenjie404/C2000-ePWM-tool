@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 3,
+  "deviceId": "F280039C",
+  "freqKhz": 20,
+  "countMode": "UP_DOWN",
+  "phaseSystem": "3P",
+  "subTopology": "3P_3LEG",
+  "threePhaseSyncLock": true,
+  "modulationMode": "SVPWM",
+  "modIndex": 0.95,
+  "fundFreqHz": 50,
+  "elecAngleDeg": 35,
+  "channels": [
+    {
+      "id": 1,
+      "name": "U 相桥臂 (Phase U)",
+      "enabled": true,
+      "independentFreq": false,
+      "customFreqKhz": 100,
+      "duty": 50,
+      "dutyB": 50,
+      "phase": 0,
+      "redNs": 300,
+      "fedNs": 300,
+      "lockDb": true,
+      "mode": "AHC",
+      "inMode": "DBA_ALL",
+      "muxIdxA": 0,
+      "muxIdxB": 0,
+      "hrpwm": false
+    },
+    {
+      "id": 2,
+      "name": "V 相桥臂 (Phase V)",
+      "enabled": true,
+      "independentFreq": false,
+      "customFreqKhz": 100,
+      "duty": 50,
+      "dutyB": 50,
+      "phase": 0,
+      "redNs": 300,
+      "fedNs": 300,
+      "lockDb": true,
+      "mode": "AHC",
+      "inMode": "DBA_ALL",
+      "muxIdxA": 0,
+      "muxIdxB": 0,
+      "hrpwm": false
+    },
+    {
+      "id": 3,
+      "name": "W 相桥臂 (Phase W)",
+      "enabled": true,
+      "independentFreq": false,
+      "customFreqKhz": 100,
+      "duty": 50,
+      "dutyB": 50,
+      "phase": 0,
+      "redNs": 300,
+      "fedNs": 300,
+      "lockDb": true,
+      "mode": "AHC",
+      "inMode": "DBA_ALL",
+      "muxIdxA": 0,
+      "muxIdxB": 0,
+      "hrpwm": false
+    }
+  ],
+  "tripZone": {
+    "enabled": false,
+    "sources": [
+      "TZ1"
+    ],
+    "action": "OST",
+    "outA": "FORCE_LOW",
+    "outB": "FORCE_LOW",
+    "interrupt": true
+  },
+  "adcTrigger": {
+    "enabled": true,
+    "source": "CTR_ZERO",
+    "prescale": 1
+  },
+  "hrpwm": false,
+  "codeTarget": "BITFIELD",
+  "commentLang": "CN"
+}

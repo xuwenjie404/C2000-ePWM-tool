@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/C2000-ePWM-tool/schema/project.schema.json",
+  "title": "C2000 ePWM Tool 工程文件",
+  "description": "ProjectState 的机器可读契约。编辑器把 .epwm.json 关联到本文件即可获得补全与校验。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "deviceId",
+    "freqKhz",
+    "countMode",
+    "phaseSystem",
+    "subTopology",
+    "threePhaseSyncLock",
+    "modulationMode",
+    "modIndex",
+    "fundFreqHz",
+    "elecAngleDeg",
+    "channels",
+    "tripZone",
+    "adcTrigger",
+    "hrpwm",
+    "codeTarget",
+    "commentLang"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "工程结构版本，由 migrateProject 负责升级"
+    },
+    "deviceId": {
+      "type": "string",
+      "description": "器件 id，对应 DeviceModel.id",
+      "examples": ["F280039C", "F280049C", "F28379D", "F28335"]
+    },
+    "freqKhz": { "type": "number", "minimum": 0.05, "maximum": 500, "description": "主开关频率 kHz" },
+    "countMode": { "type": "string", "enum": ["UP_DOWN", "UP"] },
+    "phaseSystem": { "type": "string", "enum": ["1P", "3P"] },
+    "subTopology": { "type": "string", "description": "拓扑 id，对应 Topology.id" },
+    "threePhaseSyncLock": { "type": "boolean" },
+    "modulationMode": { "type": "string", "enum": ["FIXED", "SPWM", "SVPWM"] },
+    "modIndex": { "type": "number", "minimum": 0, "maximum": 2 },
+    "fundFreqHz": { "type": "number", "minimum": 1, "maximum": 5000 },
+    "elecAngleDeg": { "type": "number", "minimum": 0, "maximum": 360 },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": { "$ref": "#/definitions/channel" }
+    },
+    "tripZone": { "$ref": "#/definitions/tripZone" },
+    "adcTrigger": { "$ref": "#/definitions/adcTrigger" },
+    "hrpwm": { "type": "boolean" },
+    "codeTarget": {
+      "type": "string",
+      "enum": ["BITFIELD", "DRIVERLIB", "MARKDOWN"],
+      "description": "代码生成目标，对应 CodegenTarget.id"
+    },
+    "commentLang": { "type": "string", "enum": ["CN", "EN"] }
+  },
+  "definitions": {
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "independentFreq",
+        "customFreqKhz",
+        "duty",
+        "dutyB",
+        "phase",
+        "redNs",
+        "fedNs",
+        "lockDb",
+        "mode",
+        "inMode",
+        "muxIdxA",
+        "muxIdxB",
+        "hrpwm"
+      ],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1, "maximum": 12 },
+        "name": { "type": "string", "maxLength": 120 },
+        "enabled": { "type": "boolean" },
+        "independentFreq": { "type": "boolean" },
+        "customFreqKhz": { "type": "number", "minimum": 0.05, "maximum": 500 },
+        "duty": { "type": "number", "minimum": 0, "maximum": 100 },
+        "dutyB": { "type": "number", "minimum": 0, "maximum": 100 },
+        "phase": { "type": "number", "minimum": 0, "maximum": 360 },
+        "redNs": { "type": "number", "minimum": 0, "maximum": 50000 },
+        "fedNs": { "type": "number", "minimum": 0, "maximum": 50000 },
+        "lockDb": { "type": "boolean" },
+        "mode": { "type": "string", "enum": ["AH", "ALC", "AHC", "AL", "BYPASS"] },
+        "inMode": {
+          "type": "string",
+          "enum": ["DBA_ALL", "DBB_RED_DBA_FED", "DBA_RED_DBB_FED", "DBB_ALL"]
+        },
+        "muxIdxA": { "type": "integer", "minimum": 0, "maximum": 8 },
+        "muxIdxB": { "type": "integer", "minimum": 0, "maximum": 8 },
+        "hrpwm": { "type": "boolean" }
+      }
+    },
+    "tripZone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "sources", "action", "outA", "outB", "interrupt"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["TZ1", "TZ2", "TZ3", "TZ4", "TZ5", "TZ6"] }
+        },
+        "action": { "type": "string", "enum": ["CBC", "OST"] },
+        "outA": { "type": "string", "enum": ["FORCE_LOW", "FORCE_HIGH", "HI_Z", "DO_NOTHING"] },
+        "outB": { "type": "string", "enum": ["FORCE_LOW", "FORCE_HIGH", "HI_Z", "DO_NOTHING"] },
+        "interrupt": { "type": "boolean" }
+      }
+    },
+    "adcTrigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "source", "prescale"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "source": { "type": "string", "enum": ["CTR_ZERO", "CTR_PRD", "CTR_ZERO_OR_PRD"] },
+        "prescale": { "type": "integer", "minimum": 1, "maximum": 15 }
+      }
+    }
+  }
+}

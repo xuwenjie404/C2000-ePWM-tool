@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import type { GeneratedFile } from '../types';
-import { Badge, Btn, Card, cx } from './ui';
+import type { CodeTarget, GeneratedFile } from '../types';
+import { codegenRegistry } from '../lib/targets';
+import { Badge, Btn, Card, Segmented, cx } from './ui';
 import { Icon } from './Icon';
 
 /** 轻量 C 语法高亮：先转义再分包，避免注入 */
@@ -67,9 +68,9 @@ interface Props {
   files: GeneratedFile[];
   activeName: string;
   onActiveName: (name: string) => void;
-  style: 'BITFIELD' | 'DRIVERLIB';
+  target: CodeTarget;
   lang: 'CN' | 'EN';
-  onStyle: () => void;
+  onTarget: (t: CodeTarget) => void;
   onLang: () => void;
   onCopy: () => void;
   onDownloadFile: (name: string) => void;
@@ -82,9 +83,9 @@ export function CodePanel({
   files,
   activeName,
   onActiveName,
-  style,
+  target,
   lang,
-  onStyle,
+  onTarget,
   onLang,
   onCopy,
   onDownloadFile,
@@ -94,6 +95,8 @@ export function CodePanel({
 }: Props) {
   const active = files.find(f => f.name === activeName) ?? files[0];
   const lines = useMemo(() => (active?.content ?? '').split('\n'), [active]);
+  const targets = codegenRegistry.list();
+  const isMarkdown = active?.language === 'md';
 
   return (
     <Card className="flex h-full min-h-[520px] flex-col">
@@ -112,10 +115,16 @@ export function CodePanel({
             <Btn compact variant="ghost" onClick={onLang} icon="link">
               {lang === 'CN' ? '中文注释' : 'English'}
             </Btn>
-            <Btn compact variant="violet" onClick={onStyle}>
-              {style === 'BITFIELD' ? 'Bit-Field' : 'DriverLib'}
-            </Btn>
           </div>
+        </div>
+
+        <div className="mb-2">
+          <Segmented
+            tone="violet"
+            value={target}
+            onChange={v => onTarget(v)}
+            options={targets.map(t => ({ value: t.id, label: t.label, title: t.description }))}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
@@ -155,7 +164,7 @@ export function CodePanel({
               <div key={i} className="flex rounded px-1 hover:bg-slate-800/40">
                 <span className="w-10 shrink-0 select-none pr-3 text-right text-slate-600">{i + 1}</span>
                 <span className="flex-1 whitespace-pre text-slate-200">
-                  <HighlightedLine line={line} />
+                  {isMarkdown ? line : <HighlightedLine line={line} />}
                 </span>
               </div>
             ))}

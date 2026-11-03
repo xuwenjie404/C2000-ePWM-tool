@@ -6,7 +6,11 @@
 export type CountMode = 'UP_DOWN' | 'UP';
 export type PhaseSystem = '1P' | '3P';
 export type ModulationMode = 'FIXED' | 'SPWM' | 'SVPWM';
-export type CodeStyle = 'BITFIELD' | 'DRIVERLIB';
+/**
+ * 代码生成目标。每种目标是一个可插拔的 CodegenTarget，
+ * 通过 codegenRegistry 注册，新增目标无需改动 UI 或内核。
+ */
+export type CodeTarget = 'BITFIELD' | 'DRIVERLIB' | 'MARKDOWN';
 export type CommentLang = 'CN' | 'EN';
 export type ViewMode = 'SPLIT' | 'WAVE' | 'PINOUT';
 
@@ -111,7 +115,7 @@ export interface ProjectState {
   tripZone: TripZoneConfig;
   adcTrigger: AdcTriggerConfig;
   hrpwm: boolean;
-  codeStyle: CodeStyle;
+  codeTarget: CodeTarget;
   commentLang: CommentLang;
 }
 
@@ -183,6 +187,6 @@ export interface DiagnosticIssue {
 
 export interface GeneratedFile {
   name: string;
-  language: 'c' | 'h';
+  language: 'c' | 'h' | 'md';
   content: string;
 }

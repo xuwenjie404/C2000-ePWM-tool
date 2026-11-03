@@ -9,7 +9,7 @@ on:
 
 jobs:
   verify:
-    name: 类型检查 · 单元测试 · 构建
+    name: 类型检查 · 单元测试 · 构建 · CLI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,12 +29,25 @@ jobs:
       - name: 单元测试
         run: npm test
 
-      - name: 生产构建
+      - name: 构建网页
         run: npm run build
+
+      - name: 构建内核
+        run: npm run build:engine
+
+      # 平台契约：CLI 必须能用仓库里的示例工程跑通
+      - name: CLI 端到端（check + build）
+        run: |
+          node bin/epwm.mjs check examples/three-phase-inverter.epwm.json
+          node bin/epwm.mjs build examples/three-phase-inverter.epwm.json -o "$RUNNER_TEMP/gen"
+          node bin/epwm.mjs check examples/legacy-v0.epwm.json
+          ls -l "$RUNNER_TEMP/gen"
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist
+          path: |
+            dist
+            dist-engine
           retention-days: 7

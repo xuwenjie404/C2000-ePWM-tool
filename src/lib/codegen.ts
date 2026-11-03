@@ -50,7 +50,7 @@ function tripActionDriver(action: string): string {
 
 function fileHeader(project: ProjectState, hw: HardwareModel, fileName: string, isCN: boolean): string {
   const t = makeCommenter(isCN);
-  const style = project.codeStyle === 'BITFIELD' ? 'Bit-Field' : 'DriverLib';
+  const style = project.codeTarget === 'BITFIELD' ? 'Bit-Field' : 'DriverLib';
   return `/**
  * @file    ${fileName}
  * @brief   ${t('TI C2000 ePWM 初始化代码', 'TI C2000 ePWM initialization code')}
@@ -386,7 +386,7 @@ function gpioInit(hw: HardwareModel, project: ProjectState): string {
   const L: string[] = [];
   L.push(`void EPWM_initGpio(void)`);
   L.push(`{`);
-  if (project.codeStyle === 'BITFIELD') {
+  if (project.codeTarget === 'BITFIELD') {
     L.push(`    EALLOW;`);
     for (const c of hw.channels) {
       if (!c.cfg.enabled) continue;
@@ -432,7 +432,7 @@ function isrBlock(hw: HardwareModel, project: ProjectState): string {
   const span = project.countMode === 'UP_DOWN' ? hw.master.tb.tbprd : hw.master.tb.tbprd + 1;
   const halfSpan = Math.floor(span / 2);
   const enabled = hw.channels.filter(c => c.cfg.enabled);
-  const isBitfield = project.codeStyle === 'BITFIELD';
+  const isBitfield = project.codeTarget === 'BITFIELD';
   const L: string[] = [];
 
   const writeCmp = (id: number, expr: string): string =>
@@ -525,7 +525,7 @@ function isrBlock(hw: HardwareModel, project: ProjectState): string {
 
 function mainBlock(hw: HardwareModel, project: ProjectState): string {
   const t = makeCommenter(project.commentLang === 'CN');
-  const isBitfield = project.codeStyle === 'BITFIELD';
+  const isBitfield = project.codeTarget === 'BITFIELD';
   const hasMod = project.modulationMode !== 'FIXED';
   const enabled = hw.channels.filter(c => c.cfg.enabled);
   const L: string[] = [];
@@ -605,10 +605,21 @@ function mainBlock(hw: HardwareModel, project: ProjectState): string {
   return L.join('\n');
 }
 
-export function generateCode(project: ProjectState, hw: HardwareModel): GeneratedFile[] {
+export type CCodeTarget = 'BITFIELD' | 'DRIVERLIB';
+
+/**
+ * 生成 C 代码（Bit-Field 或 DriverLib 风格）。
+ *
+ * 这是「C 代码目标」的实现体；对外统一入口是 src/lib/targets/index.ts 的
+ * generateCode()，它按 project.codeTarget 从注册表里挑目标。
+ * 新增生成目标不需要改动本函数。
+ */
+export function produceC(input: ProjectState, hw: HardwareModel, target: CCodeTarget): GeneratedFile[] {
+  // 把目标样式注入到项目视图上，下面所有 emitter 统一读 project.codeTarget
+  const project: ProjectState = { ...input, codeTarget: target };
   const isCN = project.commentLang === 'CN';
   const t = makeCommenter(isCN);
-  const style = project.codeStyle;
+  const style = project.codeTarget;
 
   const cLines: string[] = [];
   cLines.push(fileHeader(project, hw, 'epwm_config.c', isCN));
@@ -675,9 +686,9 @@ export function generateCode(project: ProjectState, hw: HardwareModel): Generate
   ];
 }
 
-/** 单文件导出（便于直接粘贴进 IDE 的小工程） */
-export function generateSingleFile(project: ProjectState, hw: HardwareModel): string {
-  return generateCode(project, hw)
+/** 把多个文件合并成一份（便于直接粘贴进 IDE 的小工程） */
+export function mergeFiles(files: GeneratedFile[]): string {
+  return files
     .map(f => `/* ======================== ${f.name} ======================== */\n\n${f.content}`)
     .join('\n\n');
 }

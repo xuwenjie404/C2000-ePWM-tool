@@ -1,14 +1,25 @@
 import { DB_IN_MODES, DEADBAND_MODES } from '../data/deadband';
 import { DEFAULT_DEVICE_ID, DEVICES } from '../data/devices';
 import { PRESETS, findPreset, makeChannel } from '../data/presets';
-import type { ChannelConfig, CountMode, ProjectState } from '../types';
+import type { ChannelConfig, CodeTarget, CountMode, ProjectState } from '../types';
 
+/**
+ * 工程数据版本。
+ *
+ * 版本号写进 JSON 与分享链接里，**只增不改**：任何一个历史版本的工程文件，
+ * 都必须能被 migrateProject() 一路升级到当前版本再导入，
+ * 否则用户三年前存的文件就打不开了 —— 这是平台的基本契约。
+ *
+ * v0：原始 dsp_epwm.tsx 的导出格式（无 schemaVersion，器件字段叫 selectedDspId）
+ * v3：当前版本（codeTarget 取代 codeStyle，新增 hrpwm / tripZone / adcTrigger）
+ */
 export const SCHEMA_VERSION = 3;
 export const STORAGE_KEY = 'c2000-epwm-project-v3';
 /** UI 支持的最大桥臂数（受引脚库与配色限制） */
 export const MAX_CHANNELS = 4;
 
 const COUNT_MODES: CountMode[] = ['UP_DOWN', 'UP'];
+const CODE_TARGETS: CodeTarget[] = ['BITFIELD', 'DRIVERLIB', 'MARKDOWN'];
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
@@ -24,6 +35,36 @@ function bool(v: unknown, fallback: boolean): boolean {
 
 function pick<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(v as T) ? (v as T) : fallback;
+}
+
+/**
+ * 把任意历史版本升级到当前结构。
+ *
+ * 只做「结构搬迁」，不做数值校验 —— 校验统一交给 sanitizeProject。
+ * 新增版本时：在 switch 里追加一个分支，并把 SCHEMA_VERSION 加一。
+ */
+export function migrateProject(raw: unknown): Record<string, unknown> {
+  if (!raw || typeof raw !== 'object') return {};
+  let doc = { ...(raw as Record<string, unknown>) };
+  const version = typeof doc.schemaVersion === 'number' ? doc.schemaVersion : 0;
+
+  switch (version) {
+    case 0: {
+      // v0 → v3：原始单文件工具的导出（selectedDspId / version 字段）
+      const legacy = doc as Record<string, unknown>;
+      doc = {
+        ...doc,
+        deviceId: legacy.deviceId ?? legacy.selectedDspId,
+      };
+      delete doc.selectedDspId;
+      delete doc.version;
+      break;
+    }
+    default:
+      break;
+  }
+
+  return { ...doc, schemaVersion: SCHEMA_VERSION };
 }
 
 export function createDefaultProject(): ProjectState {
@@ -43,7 +84,7 @@ export function createDefaultProject(): ProjectState {
     },
     adcTrigger: { enabled: true, source: 'CTR_ZERO', prescale: 1 },
     hrpwm: false,
-    codeStyle: 'BITFIELD',
+    codeTarget: 'BITFIELD',
     commentLang: 'CN',
   };
 }
@@ -78,7 +119,7 @@ function sanitizeChannel(raw: unknown, index: number): ChannelConfig {
 export function sanitizeProject(raw: unknown): ProjectState {
   const def = createDefaultProject();
   if (!raw || typeof raw !== 'object') return def;
-  const o = raw as Record<string, unknown>;
+  const o = migrateProject(raw);
 
   const rawChannels = Array.isArray(o.channels) ? o.channels.slice(0, MAX_CHANNELS) : def.channels;
   const channels = rawChannels.map((c, i) => sanitizeChannel(c, i));
@@ -121,7 +162,7 @@ export function sanitizeProject(raw: unknown): ProjectState {
       prescale: Math.round(num(adc.prescale, 1, 1, 15)),
     },
     hrpwm: bool(o.hrpwm, false),
-    codeStyle: pick(o.codeStyle, ['BITFIELD', 'DRIVERLIB'] as const, 'BITFIELD'),
+    codeTarget: pick(o.codeTarget ?? o.codeStyle, CODE_TARGETS, 'BITFIELD'),
     commentLang: pick(o.commentLang, ['CN', 'EN'] as const, 'CN'),
   };
 }
@@ -191,5 +232,14 @@ export function loadProjectFromStorage(): ProjectState | null {
     return sanitizeProject(JSON.parse(raw));
   } catch {
     return null;
+  }
+}
+
+/** 清空本地工程（用于「出问题了先重置」和报错恢复） */
+export function clearProjectStorage(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* 忽略 */
   }
 }

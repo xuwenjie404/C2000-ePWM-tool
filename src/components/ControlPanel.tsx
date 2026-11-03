@@ -1,22 +1,10 @@
 import { DEVICES } from '../data/devices';
 import { PRESETS } from '../data/presets';
+import { topologiesFor } from '../data/topologies';
 import type { ProjectState } from '../types';
 import type { HardwareModel } from '../lib/hardware';
 import { maxLinearModIndex, modulationSamplingInfo } from '../lib/modulation';
 import { Badge, Btn, Card, Field, PanelHeader, Segmented, Select, Slider, Stat } from './ui';
-
-export const SUB_TOPOLOGIES: Record<'1P' | '3P', { id: string; label: string; hint: string }[]> = {
-  '1P': [
-    { id: '1P_HB', label: '半桥', hint: '单桥臂 + 互补死区' },
-    { id: '1P_FB', label: '全桥 / 移相', hint: '两桥臂，移相控制' },
-    { id: '1P_TOTEM', label: '图腾柱 PFC', hint: '快管高频 + 慢管工频' },
-  ],
-  '3P': [
-    { id: '3P_3LEG', label: '三桥臂', hint: '标准三相逆变/整流' },
-    { id: '3P_4LEG', label: '四桥臂', hint: '带 N 相中线' },
-    { id: '3P_INTERLEAVED', label: '交错并联', hint: '载波 0/120/240° 移相' },
-  ],
-};
 
 const FUND_FREQS = [
   { v: 50, label: '50 Hz 工频' },
@@ -77,7 +65,7 @@ export function ControlPanel({ project, hw, onPatch, onTopology, onPreset }: Pro
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {SUB_TOPOLOGIES[project.phaseSystem].map(sub => (
+            {topologiesFor(project.phaseSystem).map(sub => (
               <button
                 key={sub.id}
                 type="button"

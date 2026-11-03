@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultProject, sanitizeProject } from './project';
 import { resolveHardware } from './hardware';
-import { generateCode, generateSingleFile } from './codegen';
+import { generateCode, generateSingleFile } from './targets';
 
 const project = createDefaultProject();
 
@@ -107,7 +107,7 @@ describe('Trip-Zone 与 ADC 触发', () => {
 });
 
 describe('DriverLib 风格', () => {
-  const p = sanitizeProject({ ...project, codeStyle: 'DRIVERLIB' });
+  const p = sanitizeProject({ ...project, codeTarget: 'DRIVERLIB' });
   const c = file('epwm_config.c', p);
 
   it('使用 EPWM_* API 而不是寄存器结构体', () => {
