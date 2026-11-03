@@ -40,6 +40,10 @@ jobs:
 
       - name: 配置 Pages
         uses: actions/configure-pages@v5
+        with:
+          # 仓库尚未启用 Pages 时自动创建站点（需要 pages: write 权限，本工作流已声明）。
+          # 这样 clone / fork 之后直接 push 就能上线，不必先去 Settings 里点一次。
+          enablement: true
 
       - name: 打包产物
         uses: actions/upload-pages-artifact@v3
