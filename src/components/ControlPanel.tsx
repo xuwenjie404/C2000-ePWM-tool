@@ -112,7 +112,8 @@ export function ControlPanel({ project, hw, onPatch, onTopology, onPreset }: Pro
         <Slider
           label="开关频率 f_sw"
           value={project.freqKhz}
-          display={`${project.freqKhz} kHz`}
+          unit="kHz"
+          decimals={2}
           min={0.05}
           max={500}
           step={0.05}
@@ -154,7 +155,7 @@ export function ControlPanel({ project, hw, onPatch, onTopology, onPreset }: Pro
                 label="调制比 M"
                 tone="violet"
                 value={project.modIndex}
-                display={project.modIndex.toFixed(3)}
+                decimals={4}
                 min={0.05}
                 max={1.2}
                 step={0.005}
@@ -173,7 +174,8 @@ export function ControlPanel({ project, hw, onPatch, onTopology, onPreset }: Pro
               <Slider
                 label="观测电角度 θe"
                 value={project.elecAngleDeg}
-                display={`${project.elecAngleDeg}°`}
+                unit="°"
+                decimals={0}
                 min={0}
                 max={360}
                 onChange={v => onPatch({ elecAngleDeg: v })}

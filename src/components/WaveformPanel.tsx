@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelConfig, Interval, ProjectState } from '../types';
-import type { HardwareModel } from '../lib/hardware';
+import type { HardwareModel, ResolvedChannel } from '../lib/hardware';
 import { computeModulationInstant, maxLinearModIndex } from '../lib/modulation';
-import { Badge, Btn, Card, PanelHeader, cx } from './ui';
+import { Badge, Btn, Card, NumberBadge, PanelHeader, cx } from './ui';
 import { Icon } from './Icon';
 
 const COLORS = [
@@ -32,6 +32,11 @@ interface Props {
 }
 
 type DragKind = 'duty' | 'red' | 'fed' | 'phase';
+
+/** 死区上限：与通道卡片保持一致（周期的 45%，至少 100 ns） */
+function maxDbOf(ch: ResolvedChannel): number {
+  return Math.max(100, Math.round(ch.tb.periodNs * 0.45));
+}
 
 interface DragState {
   chId: number;
@@ -352,13 +357,43 @@ export function WaveformPanel({
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone="amber" mono>
-                    RED {(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns
-                  </Badge>
-                  <Badge tone="amber" mono>
-                    FED {(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns
-                  </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <NumberBadge
+                    label="Duty"
+                    unit="%"
+                    tone="sky"
+                    value={ch.cfg.duty}
+                    min={0.5}
+                    max={99.5}
+                    step={0.1}
+                    decimals={1}
+                    title="ePWMxA 占空比，可直接输入或用下方白色手柄拖动"
+                    onChange={v => onChannelChange(ch.cfg.id, { duty: v })}
+                  />
+                  <NumberBadge
+                    label="RED"
+                    unit="ns"
+                    tone="amber"
+                    value={ch.cfg.redNs}
+                    min={0}
+                    max={maxDbOf(ch)}
+                    step={10}
+                    decimals={0}
+                    title="上升沿死区，可直接输入或用波形上的琥珀色手柄拖动"
+                    onChange={v => onChannelChange(ch.cfg.id, { redNs: v })}
+                  />
+                  <NumberBadge
+                    label="FED"
+                    unit="ns"
+                    tone="amber"
+                    value={ch.cfg.fedNs}
+                    min={0}
+                    max={maxDbOf(ch)}
+                    step={10}
+                    decimals={0}
+                    title="下降沿死区，可直接输入或用波形上的橙色手柄拖动"
+                    onChange={v => onChannelChange(ch.cfg.id, { fedNs: v })}
+                  />
                   {project.channels.length > 1 && ch.cfg.id !== 1 && (
                     <button
                       type="button"

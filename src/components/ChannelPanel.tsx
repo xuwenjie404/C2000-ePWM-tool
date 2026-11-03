@@ -25,6 +25,7 @@ function ChannelCard({
 }) {
   const cfg = ch.cfg;
   const isMaster = cfg.id === 1;
+  // 与波形面板共用同一上限，避免两处滑块的可用范围不一致
   const maxDb = Math.max(100, Math.round(ch.tb.periodNs * 0.45));
 
   return (
@@ -90,7 +91,8 @@ function ChannelCard({
           label="通道独立开关频率"
           tone="amber"
           value={cfg.customFreqKhz}
-          display={`${cfg.customFreqKhz} kHz`}
+          unit="kHz"
+          decimals={2}
           min={0.05}
           max={500}
           step={0.05}
@@ -103,7 +105,8 @@ function ChannelCard({
             label="相对主通道移相角 Δφ"
             tone="emerald"
             value={cfg.phase}
-            display={`${cfg.phase}°`}
+            unit="°"
+            decimals={0}
             min={0}
             max={360}
             onChange={v => onChannelChange(cfg.id, { phase: v })}
@@ -113,26 +116,28 @@ function ChannelCard({
       )}
 
       <Slider
-        label={`ePWM${cfg.id}A 占空比 (CMPA = ${ch.cmpA})`}
+        label={`ePWM${cfg.id}A 占空比`}
         value={cfg.duty}
-        display={`${cfg.duty.toFixed(1)}%`}
+        unit="%"
+        decimals={1}
         min={0.5}
         max={99.5}
         step={0.1}
         onChange={v => onChannelChange(cfg.id, { duty: v })}
-        hint={`死区后实际 ${ch.wave.actualDutyAPct.toFixed(2)}%`}
+        hint={`CMPA = ${ch.cmpA} · 死区后实际 ${ch.wave.actualDutyAPct.toFixed(2)}%`}
       />
 
       {cfg.mode === 'BYPASS' && (
         <Slider
-          label={`ePWM${cfg.id}B 独立占空比 (CMPB = ${ch.cmpB})`}
+          label={`ePWM${cfg.id}B 独立占空比`}
           value={cfg.dutyB}
-          display={`${cfg.dutyB.toFixed(1)}%`}
+          unit="%"
+          decimals={1}
           min={0.5}
           max={99.5}
           step={0.1}
           onChange={v => onChannelChange(cfg.id, { dutyB: v })}
-          hint={`死区后实际 ${ch.wave.actualDutyBPct.toFixed(2)}%`}
+          hint={`CMPB = ${ch.cmpB} · 死区后实际 ${ch.wave.actualDutyBPct.toFixed(2)}%`}
         />
       )}
 
@@ -167,7 +172,7 @@ function ChannelCard({
       </p>
 
       {cfg.mode !== 'BYPASS' && (
-        <div className="space-y-2.5 rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+        <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/60 p-3.5">
           <div className="flex items-center justify-between">
             <span className="text-base font-bold text-amber-300">独立上下沿死区</span>
             <Btn
@@ -180,24 +185,28 @@ function ChannelCard({
           </div>
 
           <Slider
-            label={`上升沿死区 RED (DBRED = ${ch.dbRed})`}
+            label="上升沿死区 RED"
             tone="amber"
             value={cfg.redNs}
-            display={`${cfg.redNs} ns`}
+            unit="ns"
+            decimals={0}
             min={0}
             max={maxDb}
             step={10}
             onChange={v => onChannelChange(cfg.id, { redNs: v })}
+            hint={`DBRED = ${ch.dbRed} · A 管开通前插入 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns`}
           />
           <Slider
-            label={`下降沿死区 FED (DBFED = ${ch.dbFed})`}
+            label="下降沿死区 FED"
             tone="amber"
             value={cfg.fedNs}
-            display={`${cfg.fedNs} ns`}
+            unit="ns"
+            decimals={0}
             min={0}
             max={maxDb}
             step={10}
             onChange={v => onChannelChange(cfg.id, { fedNs: v })}
+            hint={`DBFED = ${ch.dbFed} · B 管开通前插入 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns`}
           />
         </div>
       )}
