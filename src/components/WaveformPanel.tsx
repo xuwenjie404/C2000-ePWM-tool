@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelConfig, Interval, ProjectState } from '../types';
 import type { HardwareModel, ResolvedChannel } from '../lib/hardware';
 import { computeModulationInstant, maxLinearModIndex } from '../lib/modulation';
+import { resolveWaveGeometry, tickToPixel } from '../lib/waveformGeometry';
 import { Badge, Btn, Card, NumberBadge, PanelHeader, cx } from './ui';
 import { Icon } from './Icon';
 
@@ -313,15 +314,25 @@ export function WaveformPanel({
           const pathA = stepPathFromRuns(runsA, 26, 66, xs, xe);
           const pathB = stepPathFromRuns(runsB, 96, 136, xs, xe);
 
-          // 抓手位置：都贴在信号的真实跳变沿上（沿用原 dsp_epwm.tsx 的交互设计）
-          const lastCycleStart = phasePx + cyclePx * (PERIODS - 1);
-          const aRise = ch.wave.highA.find(h => h.end - h.start > 0);
-          const redX = lastCycleStart + ((aRise ? aRise.start : 0) / periodTicks) * cyclePx;
-          const aFallTick = aRise ? aRise.end : periodTicks * 0.5;
-          const dutyX = lastCycleStart + (aFallTick / periodTicks) * cyclePx;
-          const bRise = ch.wave.highB.find(h => h.end - h.start > 0);
-          const fedX = lastCycleStart + ((bRise ? bRise.start : periodTicks * 0.75) / periodTicks) * cyclePx;
-          const phaseX = PAD_L + lastCycleStart;
+          /*
+           * 抓手几何统一走 src/lib/waveformGeometry.ts，组件与单测共用同一份实现。
+           * 曾经在这里内联算过一次：漏掉 PAD_L 导致整体左移，跨零点脉冲又把下降沿
+           * 取成了周期边界 —— 这类错误肉眼极难发现，所以改由测试守住。
+           */
+          const windowStart = PAD_L + phasePx + cyclePx * (PERIODS - 1);
+          const geo = resolveWaveGeometry({
+            highA: ch.wave.highA,
+            highB: ch.wave.highB,
+            periodTicks,
+            windowStart,
+            cyclePx,
+          });
+          const riseTick = geo.riseTick;
+          const fallTick = geo.fallTick;
+          const redX = tickToPixel(riseTick, geo.mapping);
+          const dutyX = tickToPixel(fallTick, geo.mapping);
+          const fedX = tickToPixel(geo.fedTick, geo.mapping);
+          const phaseX = windowStart;
 
           // 标签默认放在抓手右侧；靠近右边界时翻到左侧，避免被裁掉
           const labelAt = (x: number, width: number) =>
@@ -440,17 +451,18 @@ export function WaveformPanel({
                 <line x1={PAD_L} y1="81" x2={xe} y2="81" stroke="#1e293b" strokeDasharray="2 3" />
                 <line x1={PAD_L} y1="136" x2={xe} y2="136" stroke="#233046" />
 
-                {/* 死区阴影 */}
+                {/* 死区阴影：RED 窗口在 A 上升沿之前，FED 窗口在 A 下降沿之后 */}
                 {ch.cfg.mode !== 'BYPASS' &&
                   Array.from({ length: PERIODS + 1 }).map((_, k) => {
                     const base = PAD_L + phasePx + k * cyclePx;
-                    const redW = (ch.dbRed / periodTicks) * cyclePx;
-                    const fedW = (ch.dbFed / periodTicks) * cyclePx;
-                    const fallX = base + (aFallTick / periodTicks) * cyclePx;
+                    const redW = Math.max(0, (ch.dbRed / periodTicks) * cyclePx);
+                    const fedW = Math.max(0, (ch.dbFed / periodTicks) * cyclePx);
+                    const riseX = base + (riseTick / periodTicks) * cyclePx;
+                    const fallX = base + (fallTick / periodTicks) * cyclePx;
                     return (
                       <g key={k}>
                         {redW > 0.5 && (
-                          <rect x={base} y="26" width={redW} height="40" fill="rgba(245,158,11,0.28)" stroke="#f59e0b" strokeDasharray="2 2" />
+                          <rect x={riseX - redW} y="26" width={redW} height="40" fill="rgba(245,158,11,0.28)" stroke="#f59e0b" strokeDasharray="2 2" />
                         )}
                         {fedW > 0.5 && (
                           <rect x={fallX} y="96" width={fedW} height="40" fill="rgba(249,115,22,0.28)" stroke="#fb923c" strokeDasharray="2 2" />
