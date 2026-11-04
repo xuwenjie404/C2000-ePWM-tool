@@ -141,40 +141,11 @@ function ChannelCard({
         />
       )}
 
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-1 block text-base text-slate-300">死区输出模式 (DBCTL.POLSEL)</span>
-          <Select value={cfg.mode} onChange={v => onChannelChange(cfg.id, { mode: v as ChannelConfig['mode'] })}>
-            {DEADBAND_MODE_LIST.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-base text-slate-300">死区输入源 (DBCTL.IN_MODE)</span>
-          <Select value={cfg.inMode} onChange={v => onChannelChange(cfg.id, { inMode: v as ChannelConfig['inMode'] })}>
-            {DB_IN_MODE_LIST.map(m => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </Select>
-        </label>
-      </div>
-
-      <p className="rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-1.5 text-base leading-snug text-slate-400">
-        {DEADBAND_MODES[cfg.mode].description}
-        {DB_IN_MODES[cfg.inMode].crossSource && (
-          <span className="ml-1 text-amber-400">（交叉输入模式的波形为示意）</span>
-        )}
-      </p>
-
-      {cfg.mode !== 'BYPASS' && (
-        <div className="space-y-3 rounded-lg border border-slate-800 bg-slate-900/60 p-3.5">
-          <div className="flex items-center justify-between">
-            <span className="text-base font-bold text-amber-300">独立上下沿死区</span>
+      {/* ---- 死区：放在占空比之后、卡片上部，避免藏在底部 ---- */}
+      <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.04] p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-base font-bold text-amber-300">死区时间 (Dead-Band)</span>
+          {cfg.mode !== 'BYPASS' && (
             <Btn
               compact
               variant={cfg.lockDb ? 'warn' : 'ghost'}
@@ -182,34 +153,68 @@ function ChannelCard({
             >
               {cfg.lockDb ? 'RED = FED 锁定' : '独立调节'}
             </Btn>
-          </div>
-
-          <Slider
-            label="上升沿死区 RED"
-            tone="amber"
-            value={cfg.redNs}
-            unit="ns"
-            decimals={0}
-            min={0}
-            max={maxDb}
-            step={10}
-            onChange={v => onChannelChange(cfg.id, { redNs: v })}
-            hint={`DBRED = ${ch.dbRed} · A 管开通前插入 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns`}
-          />
-          <Slider
-            label="下降沿死区 FED"
-            tone="amber"
-            value={cfg.fedNs}
-            unit="ns"
-            decimals={0}
-            min={0}
-            max={maxDb}
-            step={10}
-            onChange={v => onChannelChange(cfg.id, { fedNs: v })}
-            hint={`DBFED = ${ch.dbFed} · B 管开通前插入 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns`}
-          />
+          )}
         </div>
-      )}
+
+        {cfg.mode !== 'BYPASS' && (
+          <>
+            <Slider
+              label="上升沿死区 RED"
+              tone="amber"
+              value={cfg.redNs}
+              unit="ns"
+              decimals={0}
+              min={0}
+              max={maxDb}
+              step={10}
+              onChange={v => onChannelChange(cfg.id, { redNs: v })}
+              hint={`DBRED = ${ch.dbRed} · A 管开通前插入 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns`}
+            />
+            <Slider
+              label="下降沿死区 FED"
+              tone="amber"
+              value={cfg.fedNs}
+              unit="ns"
+              decimals={0}
+              min={0}
+              max={maxDb}
+              step={10}
+              onChange={v => onChannelChange(cfg.id, { fedNs: v })}
+              hint={`DBFED = ${ch.dbFed} · B 管开通前插入 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns`}
+            />
+          </>
+        )}
+
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-base text-slate-300">输出模式 (DBCTL.POLSEL)</span>
+            <Select value={cfg.mode} onChange={v => onChannelChange(cfg.id, { mode: v as ChannelConfig['mode'] })}>
+              {DEADBAND_MODE_LIST.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-base text-slate-300">输入源 (DBCTL.IN_MODE)</span>
+            <Select value={cfg.inMode} onChange={v => onChannelChange(cfg.id, { inMode: v as ChannelConfig['inMode'] })}>
+              {DB_IN_MODE_LIST.map(m => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          </label>
+        </div>
+
+        <p className="text-base leading-snug text-slate-400">
+          {DEADBAND_MODES[cfg.mode].description}
+          {DB_IN_MODES[cfg.inMode].crossSource && (
+            <span className="ml-1 text-amber-400">（交叉输入模式的波形为示意）</span>
+          )}
+        </p>
+      </div>
 
       {hw.device.hasHRPWM && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
