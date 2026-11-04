@@ -93,6 +93,7 @@ import { sanitizeProject, resolveHardware, validateProject, generateCode } from 
 | --- | --- |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 分层、数据流、注册表、不变量、为什么不把逻辑写在组件里 |
 | [docs/EXTENDING.md](docs/EXTENDING.md) | 五个扩展配方：器件 / 拓扑 / 校验规则 / 代码目标 / 死区模式 |
+| [docs/RUNTIME-API.md](docs/RUNTIME-API.md) | 运行时参数 API：用物理量改频率/占空比/相位，以及闭环接入骨架 |
 | [docs/CONFIG-SCHEMA.md](docs/CONFIG-SCHEMA.md) | 工程文件结构、版本迁移策略、JSON Schema |
 | [docs/CLI.md](docs/CLI.md) | 命令行用法与 CI 集成（配置即代码） |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更记录 |
@@ -141,9 +142,31 @@ import { sanitizeProject, resolveHardware, validateProject, generateCode } from 
 
 ---
 
+## 生成的代码
+
+```
+main.c            初始化序列、TBCLKSYNC 时序、中断注册、主循环
+epwm_config.c     GPIO 复用 + 每个通道一个 EPWM_initChN() + 调制 ISR + Trip-Zone
+epwm_config.h     函数原型与全局符号
+epwm_api.c        运行时参数层：频率/占空比/相位的换算与安全写入
+epwm_api.h        EPWM_setFrequency / EPWM_setDuty / EPWM_setPhase
+```
+
+初始化之外，下游控制代码只需要 `epwm_api.h`，不必再碰寄存器：
+
+```c
+EPWM_setFrequency(1, 50.0f);   // 改频率，自动按原占空比与相角重算 CMPA / TBPHS
+EPWM_setDuty(1, 62.5f);        // 占空比，自动夹紧到 [1, TBPRD-1]
+EPWM_setPhase(2, 120.0f);      // 移相，自动选择 PHSDIR
+```
+
+详见 [docs/RUNTIME-API.md](docs/RUNTIME-API.md)（含闭环接入骨架与时间预算提示）。
+
+---
+
 ## 质量与工程化
 
-* **105 个单元测试**：计算内核、死区波形、校验规则、代码生成、版本迁移、JSON Schema、注册表、SSR 冒烟；
+* **153 个单元测试**：计算内核、死区波形、校验规则、代码生成、运行时 API、版本迁移、JSON Schema、注册表、SSR 冒烟；
 * **契约测试**：`schema/project.schema.json` + ajv，防止代码与数据契约漂移；
 * **CI**：类型检查 → 测试 → 构建 → 内核构建 → CLI 端到端；
 * **部署**：push 到 `main` 自动发布 GitHub Pages（`base: './'`，任意子路径可用）；

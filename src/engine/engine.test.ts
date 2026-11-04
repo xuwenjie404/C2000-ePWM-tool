@@ -32,7 +32,13 @@ describe('内核可脱离 UI 独立运行', () => {
     expect(hw.device.id).toBe('F280039C');
     expect(hw.master.tb.tbprd).toBe(3000);
     expect(countIssues(issues).error).toBe(0);
-    expect(files.map(f => f.name)).toEqual(['main.c', 'epwm_config.c', 'epwm_config.h']);
+    expect(files.map(f => f.name)).toEqual([
+      'main.c',
+      'epwm_config.c',
+      'epwm_config.h',
+      'epwm_api.c',
+      'epwm_api.h',
+    ]);
   });
 
   it('切换代码目标会走注册表而不是 if/else', () => {

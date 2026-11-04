@@ -1,5 +1,6 @@
 import { findClkDiv, findHspClkDiv } from '../data/clock';
 import { modulationSamplingInfo } from './modulation';
+import { produceRuntimeApi } from './targets/runtimeCode';
 import type { GeneratedFile, ProjectState } from '../types';
 import type { HardwareModel, ResolvedChannel } from './hardware';
 
@@ -643,6 +644,9 @@ export function produceC(input: ProjectState, hw: HardwareModel, target: CCodeTa
     cLines.push(``);
   }
 
+  // 运行时参数 API：让下游代码只面对频率/占空比/相位，不碰寄存器换算
+  const apiFiles = produceRuntimeApi(project, hw);
+
   const hLines: string[] = [];
   hLines.push(fileHeader(project, hw, 'epwm_config.h', isCN));
   hLines.push(`#ifndef EPWM_CONFIG_H`);
@@ -675,6 +679,7 @@ export function produceC(input: ProjectState, hw: HardwareModel, target: CCodeTa
   mLines.push(fileHeader(project, hw, 'main.c', isCN));
   mLines.push(style === 'BITFIELD' ? `#include "F28x_Project.h"` : `#include "driverlib.h"\n#include "device.h"`);
   mLines.push(`#include "epwm_config.h"`);
+  mLines.push(`#include "epwm_api.h"   // ${t('运行时改频率/占空比/相位用这个接口', 'runtime API for fsw / duty / phase')}`);
   if (project.modulationMode !== 'FIXED') mLines.push(`#include <math.h>`);
   mLines.push(``);
   mLines.push(mainBlock(hw, project));
@@ -683,6 +688,8 @@ export function produceC(input: ProjectState, hw: HardwareModel, target: CCodeTa
     { name: 'main.c', language: 'c', content: mLines.join('\n') },
     { name: 'epwm_config.c', language: 'c', content: cLines.join('\n') },
     { name: 'epwm_config.h', language: 'h', content: hLines.join('\n') },
+    { name: 'epwm_api.c', language: 'c', content: apiFiles.find(f => f.name === 'epwm_api.c')?.content ?? '' },
+    { name: 'epwm_api.h', language: 'h', content: apiFiles.find(f => f.name === 'epwm_api.h')?.content ?? '' },
   ];
 }
 

@@ -15,8 +15,14 @@ function file(name: string, p = project): string {
 }
 
 describe('生成物结构', () => {
-  it('输出 main.c / epwm_config.c / epwm_config.h 三个文件', () => {
-    expect(files().map(f => f.name)).toEqual(['main.c', 'epwm_config.c', 'epwm_config.h']);
+  it('输出配置文件 + 运行时参数 API 共 5 个文件', () => {
+    expect(files().map(f => f.name)).toEqual([
+      'main.c',
+      'epwm_config.c',
+      'epwm_config.h',
+      'epwm_api.c',
+      'epwm_api.h',
+    ]);
   });
 
   it('头文件包含每个启用通道的原型', () => {

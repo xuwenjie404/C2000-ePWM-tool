@@ -11,6 +11,30 @@
 * 死区自动求解：给定期望死区反推 TBPRD 下限
 * 二 / 三电平 SVPWM 扇区可视化
 * 多语言 UI（当前 UI 文案为中文常量）
+* 控制环代码生成（PI + 抗饱和 + 软启动，按拓扑选择结构）
+
+---
+
+## [2.2.0] — 运行时参数 API
+
+把「频率 / 占空比 / 相位」从寄存器操作升级为可调用的参数接口，
+下游控制代码不再需要推导 TBPRD / CMPA / TBPHS 的换算关系。
+
+### 新增
+
+* 生成 `epwm_api.c` / `epwm_api.h`：
+  `EPWM_setFrequency` / `EPWM_setDuty` / `EPWM_setPhase` / `EPWM_setParam`，
+  以及 `EPWM_actualFswKhz` / `EPWM_lastCmpa` / `EPWM_getParam`
+* 改频率时自动按原占空比与相角重算 CMPA / TBPHS，参数语义不变
+* CMPA 始终夹在 `[1, TBPRD-1]`，避免出现恒定输出
+* `src/lib/runtimeApi.ts`：与 C 端一一对应的换算法，单测交叉验证与设计期求解器一致
+* `docs/RUNTIME-API.md`：接口说明、限制（分频固定 / 死区非影子 / 需 FPU）、闭环接入骨架
+* 12 个代码生成测试 + 11 个换算测试（共 153 个）
+
+### 变更
+
+* 生成文件从 3 个变为 5 个（新增 `epwm_api.c` / `epwm_api.h`）
+* `main.c` 增加 `#include "epwm_api.h"` 并指向运行时接口
 
 ---
 
