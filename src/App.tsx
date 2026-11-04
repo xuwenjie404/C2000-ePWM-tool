@@ -136,7 +136,13 @@ export default function App() {
         }
         return next;
       });
-      return { ...prev, channels };
+      // 手动改占空比意味着接管调制：切到固定占空比，否则下一次调制刷新会把用户的值覆盖掉
+      const tookOverDuty = raw.duty !== undefined && prev.modulationMode !== 'FIXED';
+      return {
+        ...prev,
+        channels,
+        modulationMode: tookOverDuty ? 'FIXED' : prev.modulationMode,
+      };
     });
   }, []);
 

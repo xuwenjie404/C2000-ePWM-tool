@@ -313,7 +313,7 @@ export function WaveformPanel({
           const pathA = stepPathFromRuns(runsA, 26, 66, xs, xe);
           const pathB = stepPathFromRuns(runsB, 96, 136, xs, xe);
 
-          // 手柄位置：A 相上升沿（RED）、B 相上升沿（FED）、A 相下降沿（占空比）
+          // 抓手位置：都贴在信号的真实跳变沿上（沿用原 dsp_epwm.tsx 的交互设计）
           const lastCycleStart = phasePx + cyclePx * (PERIODS - 1);
           const aRise = ch.wave.highA.find(h => h.end - h.start > 0);
           const redX = lastCycleStart + ((aRise ? aRise.start : 0) / periodTicks) * cyclePx;
@@ -321,6 +321,16 @@ export function WaveformPanel({
           const dutyX = lastCycleStart + (aFallTick / periodTicks) * cyclePx;
           const bRise = ch.wave.highB.find(h => h.end - h.start > 0);
           const fedX = lastCycleStart + ((bRise ? bRise.start : periodTicks * 0.75) / periodTicks) * cyclePx;
+          const phaseX = PAD_L + lastCycleStart;
+
+          // 标签默认放在抓手右侧；靠近右边界时翻到左侧，避免被裁掉
+          const labelAt = (x: number, width: number) =>
+            x + 9 + width > SVG_W - 8
+              ? { x: x - 9, anchor: 'end' as const }
+              : { x: x + 9, anchor: 'start' as const };
+          const redLabel = labelAt(redX, 92);
+          const dutyLabel = labelAt(dutyX, 108);
+          const fedLabel = labelAt(fedX, 92);
 
           const isActive = activeChannelId === ch.cfg.id;
 
@@ -422,10 +432,12 @@ export function WaveformPanel({
                   const x = PAD_L + (i / 4) * cyclePx + phasePx;
                   if (x < PAD_L || x > xe) return null;
                   return (
-                    <line key={i} x1={x} y1="22" x2={x} y2="138" stroke="#16233a" strokeDasharray="3 5" />
+                    <line key={i} x1={x} y1="12" x2={x} y2="146" stroke="#16233a" strokeDasharray="3 5" />
                   );
                 })}
                 <line x1={PAD_L} y1="66" x2={xe} y2="66" stroke="#233046" />
+                {/* A/B 之间的分隔虚线（原设计里的中线） */}
+                <line x1={PAD_L} y1="81" x2={xe} y2="81" stroke="#1e293b" strokeDasharray="2 3" />
                 <line x1={PAD_L} y1="136" x2={xe} y2="136" stroke="#233046" />
 
                 {/* 死区阴影 */}
@@ -473,74 +485,10 @@ export function WaveformPanel({
                 <path d={pathA} fill="none" stroke={color.main} strokeWidth="2.6" strokeLinejoin="round" />
 
                 {/*
-                  浮标贴在上/下边缘，再用虚线连回真实边沿位置：
-                  既能拖，又不会把波形压住；标签也不会在右边界被裁掉。
+                  抓手贴在信号跳变沿上（沿用原 dsp_epwm.tsx 的交互）：
+                  竖条正好压住沿的位置，标签紧随其右，靠近右边界时自动翻到左侧。
+                  每个抓手额外叠一块透明矩形，把可拖拽区域加宽到 18px。
                 */}
-                {ch.cfg.mode !== 'BYPASS' && (
-                  <g
-                    className="cursor-ew-resize"
-                    onPointerDown={e =>
-                      beginDrag(e, ch.cfg.id, 'red', ch.cfg.redNs, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
-                    }
-                  >
-                    <line x1={redX} y1={17} x2={redX} y2={26} stroke="#f59e0b" strokeDasharray="2 3" strokeWidth="1.5" opacity="0.9" />
-                    <rect x={redX - 5} y={2} width="10" height="15" rx="3" fill="#f59e0b" stroke="#0b1220" strokeWidth="1.5" />
-                    <text
-                      x={Math.max(PAD_L + 4, redX - 12)}
-                      y={14}
-                      textAnchor="end"
-                      fill="#fcd34d"
-                      fontSize="15"
-                      fontWeight="700"
-                    >
-                      RED {ch.cfg.redNs}ns
-                    </text>
-                  </g>
-                )}
-
-                {/* 浮标：占空比（上边缘） */}
-                <g
-                  className="cursor-ew-resize"
-                  onPointerDown={e =>
-                    beginDrag(e, ch.cfg.id, 'duty', ch.cfg.duty, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
-                  }
-                >
-                  <line x1={dutyX} y1={17} x2={dutyX} y2={66} stroke="#e2e8f0" strokeDasharray="2 4" strokeWidth="1.2" opacity="0.35" />
-                  <rect x={dutyX - 5} y={2} width="10" height="15" rx="3" fill="#f8fafc" stroke="#0284c7" strokeWidth="1.8" />
-                  <text
-                    x={Math.min(dutyX + 12, SVG_W - 108)}
-                    y={14}
-                    fill="#e2e8f0"
-                    fontSize="15"
-                    fontWeight="700"
-                  >
-                    Duty {ch.cfg.duty.toFixed(1)}%
-                  </text>
-                </g>
-
-                {/* 浮标：FED（下边缘） */}
-                {ch.cfg.mode !== 'BYPASS' && (
-                  <g
-                    className="cursor-ew-resize"
-                    onPointerDown={e =>
-                      beginDrag(e, ch.cfg.id, 'fed', ch.cfg.fedNs, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
-                    }
-                  >
-                    <line x1={fedX} y1={139} x2={fedX} y2={96} stroke="#fb923c" strokeDasharray="2 3" strokeWidth="1.5" opacity="0.9" />
-                    <rect x={fedX - 5} y={139} width="10" height="15" rx="3" fill="#fb923c" stroke="#0b1220" strokeWidth="1.5" />
-                    <text
-                      x={Math.min(fedX + 12, SVG_W - 100)}
-                      y={151}
-                      fill="#fdba74"
-                      fontSize="15"
-                      fontWeight="700"
-                    >
-                      FED {ch.cfg.fedNs}ns
-                    </text>
-                  </g>
-                )}
-
-                {/* 浮标：移相（下边缘） */}
                 {ch.syncEnabled && (
                   <g
                     className="cursor-ew-resize"
@@ -548,15 +496,56 @@ export function WaveformPanel({
                       beginDrag(e, ch.cfg.id, 'phase', ch.cfg.phase, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
                     }
                   >
-                    <line x1={PAD_L + phasePx + cyclePx * (PERIODS - 1)} y1={139} x2={PAD_L + phasePx + cyclePx * (PERIODS - 1)} y2={96} stroke="#34d399" strokeDasharray="2 4" strokeWidth="1.2" opacity="0.4" />
-                    <circle
-                      cx={PAD_L + phasePx + cyclePx * (PERIODS - 1)}
-                      cy={146}
-                      r="6"
-                      fill="#34d399"
-                      stroke="#0b1220"
-                      strokeWidth="1.5"
-                    />
+                    <title>{`拖动设置移相角（当前 TBPHS = ${ch.phase.tbphs}）`}</title>
+                    <line x1={phaseX} y1={26} x2={phaseX} y2={136} stroke="#34d399" strokeDasharray="3 5" strokeWidth="1.2" opacity="0.4" />
+                    <rect x={phaseX - 9} y={26} width="18" height="42" fill="transparent" />
+                    <circle cx={phaseX} cy={40} r="7" fill="#34d399" stroke="#0b1220" strokeWidth="2" />
+                  </g>
+                )}
+
+                {ch.cfg.mode !== 'BYPASS' && !ch.wave.swallowedA && (
+                  <g
+                    className="cursor-ew-resize"
+                    onPointerDown={e =>
+                      beginDrag(e, ch.cfg.id, 'red', ch.cfg.redNs, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
+                    }
+                  >
+                    <title>拖动设置上升沿死区 RED</title>
+                    <rect x={redX - 9} y={26} width="18" height="40" fill="transparent" />
+                    <rect x={redX - 5} y={26} width="10" height="22" rx="2" fill="#f59e0b" stroke="#0b1220" strokeWidth="1.5" />
+                    <text x={redLabel.x} y={42} textAnchor={redLabel.anchor} fill="#fcd34d" fontSize="15" fontWeight="700">
+                      RED {ch.cfg.redNs}ns
+                    </text>
+                  </g>
+                )}
+
+                <g
+                  className="cursor-ew-resize"
+                  onPointerDown={e =>
+                    beginDrag(e, ch.cfg.id, 'duty', ch.cfg.duty, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
+                  }
+                >
+                  <title>拖动设置占空比</title>
+                  <rect x={dutyX - 9} y={26} width="18" height="40" fill="transparent" />
+                  <rect x={dutyX - 5} y={34} width="10" height="26" rx="2" fill="#f8fafc" stroke="#0284c7" strokeWidth="2" />
+                  <text x={dutyLabel.x} y={56} textAnchor={dutyLabel.anchor} fill="#e2e8f0" fontSize="15" fontWeight="700">
+                    Duty {ch.cfg.duty.toFixed(1)}%
+                  </text>
+                </g>
+
+                {ch.cfg.mode !== 'BYPASS' && !ch.wave.swallowedB && (
+                  <g
+                    className="cursor-ew-resize"
+                    onPointerDown={e =>
+                      beginDrag(e, ch.cfg.id, 'fed', ch.cfg.fedNs, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
+                    }
+                  >
+                    <title>拖动设置下降沿死区 FED</title>
+                    <rect x={fedX - 9} y={96} width="18" height="40" fill="transparent" />
+                    <rect x={fedX - 5} y={96} width="10" height="22" rx="2" fill="#fb923c" stroke="#0b1220" strokeWidth="1.5" />
+                    <text x={fedLabel.x} y={112} textAnchor={fedLabel.anchor} fill="#fdba74" fontSize="15" fontWeight="700">
+                      FED {ch.cfg.fedNs}ns
+                    </text>
                   </g>
                 )}
 
