@@ -101,7 +101,7 @@ export function CodePanel({
   const isMarkdown = active?.language === 'md';
 
   return (
-    <Card className="flex h-full min-h-[520px] flex-col">
+    <Card className="instrument flex h-full min-h-[520px] flex-col">
       <div className="border-b border-slate-800 px-4 py-3">
         <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function CodePanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-[#0b0c0e] p-3">
+      <div className="flex-1 overflow-auto bg-[var(--surface-instrument)] p-3">
         <pre className="font-mono text-base leading-relaxed">
           <code>
             {lines.map((line, i) => (

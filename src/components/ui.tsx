@@ -14,7 +14,7 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section className={cx('rounded-lg border border-slate-800 bg-[#101113]', className)}>
+    <section className={cx('rounded-lg border border-slate-800 bg-[var(--surface-card)]', className)}>
       {children}
     </section>
   );

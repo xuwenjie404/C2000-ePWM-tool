@@ -42,7 +42,7 @@ export function DiagnosticsPanel({ issues }: { issues: DiagnosticIssue[] }) {
 
       <div className="max-h-[340px] space-y-2 overflow-y-auto p-4">
         {issues.length === 0 && (
-          <p className="flex items-center gap-2 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-base text-emerald-200">
+          <p className="flex items-center gap-2 rounded-md border border-slate-800 border-l-2 border-l-emerald-500/70 px-3 py-2 text-base text-emerald-300">
             <Icon name="check" size={16} />
             {t('当前配置未发现隐患。', 'No issues found in the current configuration.')}
           </p>

@@ -20,6 +20,7 @@ import { validateProject } from './lib/validation';
 import { generateCode, generateSingleFile } from './lib/targets';
 import { computeModulationInstant } from './lib/modulation';
 import { I18nProvider, useI18n, type UiLang } from './i18n';
+import { ThemeProvider, useTheme, type Theme } from './theme';
 import {
   MAX_CHANNELS,
   applyPreset,
@@ -46,6 +47,7 @@ function AppShell() {
   const [playing, setPlaying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const { t, lang } = useI18n();
+  const { theme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hw = useMemo(() => resolveHardware(project), [project]);
@@ -274,7 +276,7 @@ function AppShell() {
   const protection = protectionSummary(project, lang);
 
   return (
-    <div className="min-h-screen bg-[#0a0b0d] text-slate-100">
+    <div data-theme={theme} className="min-h-screen bg-[var(--surface-app)] text-slate-100">
       <Header
         viewMode={viewMode}
         onView={setViewMode}
@@ -293,7 +295,7 @@ function AppShell() {
 
       {notice && (
         <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-2 rounded-md border border-slate-700 bg-[#141517] px-4 py-2 text-base font-medium text-slate-200">
+          <div className="flex items-center gap-2 rounded-md border border-slate-700 bg-[var(--surface-raised)] px-4 py-2 text-base font-medium text-slate-200">
             <Icon name="info" size={16} />
             {notice}
           </div>
@@ -386,10 +388,15 @@ function AppShell() {
 }
 
 /** 语言 Provider 只负责注入上下文，界面本体在 AppShell 里 */
-export default function App({ defaultLang }: { defaultLang?: UiLang } = {}) {
+export default function App({
+  defaultLang,
+  defaultTheme,
+}: { defaultLang?: UiLang; defaultTheme?: Theme } = {}) {
   return (
-    <I18nProvider defaultLang={defaultLang}>
-      <AppShell />
-    </I18nProvider>
+    <ThemeProvider defaultTheme={defaultTheme}>
+      <I18nProvider defaultLang={defaultLang}>
+        <AppShell />
+      </I18nProvider>
+    </ThemeProvider>
   );
 }

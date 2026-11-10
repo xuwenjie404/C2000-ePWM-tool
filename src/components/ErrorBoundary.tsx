@@ -65,8 +65,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0a0b0d] p-6 text-slate-100">
-        <div className="w-full max-w-3xl space-y-4 rounded-lg border border-slate-800 bg-[#101113] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--surface-app)] p-6 text-slate-100">
+        <div className="w-full max-w-3xl space-y-4 rounded-lg border border-slate-800 bg-[var(--surface-card)] p-6">
           <div className="flex items-center gap-2.5 text-rose-300">
             <Icon name="alert" size={24} />
             <h1 className="text-lg font-semibold text-white">{t('界面渲染失败', 'Something went wrong')}</h1>
@@ -78,7 +78,7 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
           </p>
 
-          <pre className="max-h-52 overflow-auto rounded-md border border-slate-800 bg-[#0b0c0d] p-3 font-mono text-base text-rose-300">
+          <pre className="max-h-52 overflow-auto rounded-md border border-slate-800 bg-[var(--surface-app)] p-3 font-mono text-base text-rose-300">
             {error.name}: {error.message}
             {this.state.info ? `\n${this.state.info}` : ''}
           </pre>

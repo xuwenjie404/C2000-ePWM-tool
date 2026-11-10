@@ -47,4 +47,14 @@ describe('App 冒烟渲染', () => {
     expect(zh).toContain('开关频率');
     expect(zh).not.toContain('Switching frequency');
   });
+
+  it('日间 / 夜间主题通过 data-theme 下发到根节点', () => {
+    const dark = renderToString(<App defaultTheme="dark" />);
+    const light = renderToString(<App defaultTheme="light" />);
+    expect(dark).toContain('data-theme="dark"');
+    expect(light).toContain('data-theme="light"');
+    // 按钮文案指向「将要切换到的模式」：夜间下显示「日间」，日间下显示「夜间」
+    expect(dark).toContain('日间');
+    expect(light).toContain('夜间');
+  });
 });

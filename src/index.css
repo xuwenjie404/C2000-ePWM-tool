@@ -4,18 +4,30 @@
 @source not '../legacy';
 
 /*
- * 极简配色。
+ * 双主题（夜间 / 日间）。
  *
- * 原则：
- *   1. 近单色 —— 只有石墨灰的层次，没有彩色底块；
- *   2. 一条细线 —— 结构靠 1px 边框，不靠阴影和填充；
- *   3. 单一强调色 —— 只在「可交互 / 当前选中」处出现；
- *   4. 语义色降到最低可辨识度 —— 错误/警告只用文字色，不用色块。
+ * 设计约束：
+ *   1. 极简：近单色石墨层次 + 1px 细线 + 单一强调色；
+ *   2. 界面外壳跟随主题，但**波形面板与代码块永远是深色** ——
+ *      它们是「仪器面」/「终端面」，四路波形的荧光色放到白底上会糊；
+ *   3. 实现方式：Tailwind 色阶全部指向 CSS 变量，切换主题只改变量值，
+ *      组件类名一个字都不用改。
  *
- * 实现方式：重定义 Tailwind 的色阶，组件类名保持不变。
+ * 变量分两层：
+ *   --surface-*   语义面（app / card / sunken / raised / instrument）
+ *   --color-*     Tailwind 色阶（slate 做明度反转，white 反转成近黑）
  */
-@theme {
-  /* 中性面：几乎无彩，层次只靠明度差 */
+
+:root {
+  /* 语义面（夜间） */
+  --surface-app: #0b0c0d;
+  --surface-card: #101113;
+  --surface-sunken: #0b0c0e;
+  --surface-raised: #141517;
+  /* 仪器面：两种主题下都保持深色 */
+  --surface-instrument: #0a0b0d;
+
+  /* 中性色阶（夜间：明度越高 = 越靠近前景） */
   --color-slate-950: #0f1012;
   --color-slate-900: #141517;
   --color-slate-800: #1e2023;
@@ -26,14 +38,16 @@
   --color-slate-300: #b4b8bd;
   --color-slate-200: #d6d9dd;
   --color-slate-100: #ecedef;
+  /* 标题用的「白」也走变量，浅色主题里会反转成近黑 */
+  --color-white: #ecedef;
 
-  /* 唯一强调色：冷灰蓝，只用于可交互态 */
+  /* 强调色：冷灰蓝 */
   --color-sky-300: #b9c8d4;
   --color-sky-400: #9db1c1;
   --color-sky-500: #8299ac;
   --color-sky-600: #687e91;
 
-  /* 语义色：低饱和，用作文本色而非背景色 */
+  /* 语义色 */
   --color-emerald-300: #a8b9ab;
   --color-emerald-400: #90a493;
   --color-emerald-500: #78897b;
@@ -53,6 +67,101 @@
   --color-rose-400: #b28f88;
   --color-rose-500: #95746e;
   --color-rose-600: #7a5e59;
+
+  color-scheme: dark;
+}
+
+/*
+ * 日间主题：把 slate 色阶整体反转（明度高的反而变深），
+ * 这样原本用 slate-300 写的正文会自动变成深色文字，
+ * 用 slate-800 写的描边会自动变成浅灰。
+ *
+ * 语义色需要单独加深 —— 同一支黄铜色在深底上好看，在白底上会太浅。
+ */
+[data-theme='light'] {
+  --surface-app: #f5f5f6;
+  --surface-card: #ffffff;
+  --surface-sunken: #f0f0f1;
+  --surface-raised: #ffffff;
+  --surface-instrument: #0f1012; /* 仪器面保持深色 */
+
+  --color-slate-950: #ffffff;
+  --color-slate-900: #f7f7f8;
+  --color-slate-800: #e3e4e6;
+  --color-slate-700: #d0d1d4;
+  --color-slate-600: #b0b2b6;
+  --color-slate-500: #85888d;
+  --color-slate-400: #63666b;
+  --color-slate-300: #43464b;
+  --color-slate-200: #26282c;
+  --color-slate-100: #131416;
+  --color-white: #131416;
+
+  --color-sky-300: #5a7285;
+  --color-sky-400: #4a6274;
+  --color-sky-500: #3c5161;
+  --color-sky-600: #2f424f;
+
+  --color-emerald-300: #4f6b54;
+  --color-emerald-400: #43604a;
+  --color-emerald-500: #37503e;
+  --color-emerald-600: #2b3f31;
+
+  --color-amber-300: #7a6640;
+  --color-amber-400: #6b5835;
+  --color-amber-500: #5a4a2c;
+  --color-amber-600: #493c24;
+
+  --color-violet-300: #5b5668;
+  --color-violet-400: #4d485a;
+  --color-violet-500: #403c4b;
+  --color-violet-600: #33303c;
+
+  --color-rose-300: #8a5a52;
+  --color-rose-400: #7a4d46;
+  --color-rose-500: #6a4039;
+  --color-rose-600: #5a352f;
+
+  color-scheme: light;
+}
+
+/*
+ * 仪器面作用域：波形面板与代码块在两种主题下都保持深色，
+ * 因此需要把文本/描边用的 token 在这里重置回深色一套 ——
+ * 否则日间模式下 text-white 会反转成近黑，在深底上直接看不见。
+ */
+.instrument {
+  /* 整块面板都用深色，包括标题栏与文件标签 */
+  --surface-card: #101113;
+  --surface-app: #0b0c0d;
+  --surface-raised: #141517;
+  --surface-sunken: #0b0c0e;
+
+  --color-slate-950: #0f1012;
+  --color-slate-900: #141517;
+  --color-slate-800: #1e2023;
+  --color-slate-700: #2a2d31;
+  --color-slate-600: #3d4145;
+  --color-slate-500: #5c6167;
+  --color-slate-400: #858a91;
+  --color-slate-300: #b4b8bd;
+  --color-slate-200: #d6d9dd;
+  --color-slate-100: #ecedef;
+  --color-white: #ecedef;
+
+  --color-sky-300: #b9c8d4;
+  --color-sky-400: #9db1c1;
+  --color-sky-500: #8299ac;
+  --color-sky-600: #687e91;
+  --color-emerald-300: #a8b9ab;
+  --color-emerald-400: #90a493;
+  --color-amber-300: #c3b596;
+  --color-amber-400: #ab9c7c;
+  --color-violet-300: #b6b3c2;
+  --color-rose-300: #c9a9a3;
+  --color-rose-400: #b28f88;
+
+  color-scheme: dark;
 }
 
 @layer base {
@@ -63,12 +172,13 @@
 
   body {
     margin: 0;
-    background-color: #0b0c0d;
-    color: #ecedef;
+    background-color: var(--surface-app);
+    color: var(--color-slate-100);
     font-family:
       'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    transition: background-color 0.18s ease;
   }
 
   code,
@@ -79,7 +189,7 @@
   }
 
   :focus-visible {
-    outline: 1px solid #8299ac;
+    outline: 1px solid var(--color-sky-500);
     outline-offset: 2px;
   }
 
@@ -92,7 +202,7 @@
 /* 细滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a2d31 transparent;
+  scrollbar-color: var(--color-slate-700) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -101,12 +211,12 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #2a2d31;
+  background: var(--color-slate-700);
   border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #3d4145;
+  background: var(--color-slate-600);
 }
 
 *::-webkit-scrollbar-track {

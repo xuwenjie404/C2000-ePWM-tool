@@ -175,7 +175,7 @@ function ModulationEnvelope({
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full cursor-crosshair rounded-lg border border-slate-800 bg-[#0a0b0d]"
+        className="w-full cursor-crosshair rounded-lg border border-slate-800 bg-[var(--surface-instrument)]"
         onPointerDown={e => {
           handleSeek(e.clientX, e.currentTarget);
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -278,7 +278,7 @@ export function WaveformPanel({
   );
 
   return (
-    <Card>
+    <Card className="instrument">
       <PanelHeader
         icon="wave"
         title={t('波形示波器 · 死区与移相交互调节', 'Waveform scope · interactive dead-band & phase shift')}
@@ -455,7 +455,7 @@ export function WaveformPanel({
                   svgRefs.current[ch.cfg.id] = el;
                 }}
                 viewBox={`0 0 ${SVG_W} 156`}
-                className="w-full select-none rounded-lg border border-slate-800 bg-[#0a0b0d]"
+                className="w-full select-none rounded-lg border border-slate-800 bg-[var(--surface-instrument)]"
               >
                 {/* 时间刻度 */}
                 {Array.from({ length: PERIODS * 4 + 1 }).map((_, i) => {

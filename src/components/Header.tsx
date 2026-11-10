@@ -1,6 +1,7 @@
 import type { ChangeEvent, RefObject } from 'react';
 import type { ViewMode } from '../types';
 import { useI18n } from '../i18n';
+import { useTheme } from '../theme';
 import { Badge, Btn, Segmented } from './ui';
 import { Icon } from './Icon';
 
@@ -36,9 +37,10 @@ export function Header({
   protection,
 }: Props) {
   const { t, lang, toggleLang } = useI18n();
+  const { isDark, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#0b0c0d]/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[var(--surface-app)] backdrop-blur">
       <div className="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 text-slate-300">
@@ -88,6 +90,15 @@ export function Header({
           </Btn>
           <Btn compact variant="primary" icon="download" onClick={onDownloadCode}>
             {t('下载代码', 'Download')}
+          </Btn>
+          <Btn
+            compact
+            icon={isDark ? 'sun' : 'moon'}
+            onClick={toggleTheme}
+            title={isDark ? t('切换到日间模式', 'Switch to day mode') : t('切换到夜间模式', 'Switch to night mode')}
+            aria-label={isDark ? t('切换到日间模式', 'Switch to day mode') : t('切换到夜间模式', 'Switch to night mode')}
+          >
+            {isDark ? t('日间', 'Day') : t('夜间', 'Night')}
           </Btn>
           <Btn compact onClick={toggleLang} title={t('切换到英文', 'Switch to Chinese')}>
             {lang === 'zh' ? 'EN' : '中文'}

@@ -62,10 +62,10 @@ export function PinoutPanel({ hw, onChannelChange }: Props) {
   const usedChannels = hw.channels.filter(c => c.cfg.enabled).length;
 
   const badgeClass = (p: PinInfo): string => {
-    if (p.state === 'active') return 'border-emerald-400/70 bg-emerald-500/15 text-emerald-200 font-bold';
-    if (p.state === 'alternate') return 'border-sky-500/50 bg-sky-950/60 text-sky-300 border-dashed';
-    if (p.state === 'power') return 'border-amber-600/60 bg-amber-950/50 text-amber-300';
-    return 'border-slate-800 bg-slate-900 text-slate-400';
+    if (p.state === 'active') return 'border-slate-600 text-white font-semibold';
+    if (p.state === 'alternate') return 'border-slate-800 border-dashed text-slate-400';
+    if (p.state === 'power') return 'border-slate-800 text-amber-300';
+    return 'border-slate-800 text-slate-500';
   };
 
   const label = (p: PinInfo): string => {
