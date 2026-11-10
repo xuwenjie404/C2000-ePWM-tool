@@ -56,14 +56,32 @@ describe('抓手必须落在真实跳变沿上', () => {
 });
 
 describe('视觉直觉：上升沿在左、下降沿在右', () => {
-  it('RED 的 x 小于 Duty 的 x（增减计数下脉冲居中成一整块）', () => {
-    for (const duty of [10, 30, 50, 70, 90]) {
-      const p = sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty }] });
-      const { geo } = geometryOf(p);
-      const riseX = tickToPixel(geo.riseTick, geo.mapping);
-      const fallX = tickToPixel(geo.fallTick, geo.mapping);
-      expect(riseX).toBeLessThan(fallX);
+  it('左右顺序恒为 RED → Duty → FED（5%~95% 占空比，两种计数模式）', () => {
+    for (const mode of ['UP_DOWN', 'UP'] as const) {
+      for (const duty of [5, 25, 50, 75, 95]) {
+        const p = sanitizeProject({
+          ...createDefaultProject(),
+          countMode: mode,
+          channels: [{ id: 1, duty }],
+        });
+        const { geo } = geometryOf(p);
+        const riseX = tickToPixel(geo.riseTick, geo.mapping);
+        const fallX = tickToPixel(geo.fallTick, geo.mapping);
+        const fedX = tickToPixel(geo.fedTick, geo.mapping);
+
+        expect(riseX).toBeLessThan(fallX);
+        expect(fedX).toBeGreaterThanOrEqual(fallX);
+      }
     }
+  });
+
+  it('极端占空比（99%）下抓手仍然贴合真实边沿（此时 FED 会绕回左端）', () => {
+    const p = sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty: 99 }] });
+    const { ch, geo, T } = geometryOf(p);
+    expect(levelAtTick(ch.wave.highA, geo.riseTick - 1, T)).toBe(false);
+    expect(levelAtTick(ch.wave.highA, geo.riseTick + 1, T)).toBe(true);
+    expect(levelAtTick(ch.wave.highA, geo.fallTick - 1, T)).toBe(true);
+    expect(levelAtTick(ch.wave.highA, geo.fallTick + 1, T)).toBe(false);
   });
 
   it('FED 紧跟在 Duty 之后（间隔 = 一个死区宽度）', () => {

@@ -277,7 +277,7 @@ export function WaveformPanel({
       <PanelHeader
         icon="wave"
         title="波形示波器 · 死区与移相交互调节"
-        hint="拖动琥珀色竖条改 RED、橙色竖条改 FED、白色竖条改占空比、绿色圆点改移相角；抓手都压在信号的真实跳变沿上。增减计数下脉冲以 CTR=PRD 为中心绘制，脉宽不足时会直接显示为被吞掉。"
+        hint="竖条都压在信号的真实跳变沿上，从左到右依次是 RED（琥珀）→ Duty（白）→ FED（橙），绿色圆点是移相；竖条可拖、徽标可输。增减计数下脉冲以 CTR=PRD 为中心绘制。"
         right={
           <>
             {project.modulationMode !== 'FIXED' && (
@@ -380,18 +380,7 @@ export function WaveformPanel({
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <NumberBadge
-                    label="Duty"
-                    unit="%"
-                    tone="sky"
-                    value={ch.cfg.duty}
-                    min={0.5}
-                    max={99.5}
-                    step={0.1}
-                    decimals={1}
-                    title="ePWMxA 占空比，可直接输入或用下方白色手柄拖动"
-                    onChange={v => onChannelChange(ch.cfg.id, { duty: v })}
-                  />
+                  {/* 顺序与波形上的竖条一致：RED → Duty → FED（左到右） */}
                   <NumberBadge
                     label="RED"
                     unit="ns"
@@ -401,8 +390,20 @@ export function WaveformPanel({
                     max={maxDbOf(ch)}
                     step={10}
                     decimals={0}
-                    title="上升沿死区，可直接输入或用波形上的琥珀色手柄拖动"
+                    title="上升沿死区（波形上最左侧的琥珀色竖条），可直接输入"
                     onChange={v => onChannelChange(ch.cfg.id, { redNs: v })}
+                  />
+                  <NumberBadge
+                    label="Duty"
+                    unit="%"
+                    tone="sky"
+                    value={ch.cfg.duty}
+                    min={0.5}
+                    max={99.5}
+                    step={0.1}
+                    decimals={1}
+                    title="ePWMxA 占空比（中间的白色竖条），可直接输入"
+                    onChange={v => onChannelChange(ch.cfg.id, { duty: v })}
                   />
                   <NumberBadge
                     label="FED"
@@ -413,7 +414,7 @@ export function WaveformPanel({
                     max={maxDbOf(ch)}
                     step={10}
                     decimals={0}
-                    title="下降沿死区，可直接输入或用波形上的橙色手柄拖动"
+                    title="下降沿死区（紧跟在 Duty 之后的橙色竖条），可直接输入"
                     onChange={v => onChannelChange(ch.cfg.id, { fedNs: v })}
                   />
                   {project.channels.length > 1 && ch.cfg.id !== 1 && (
