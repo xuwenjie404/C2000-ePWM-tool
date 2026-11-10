@@ -1,6 +1,7 @@
 import { DB_IN_MODES, DEADBAND_MODES } from '../data/deadband';
 import { DEFAULT_DEVICE_ID, DEVICES } from '../data/devices';
 import { PRESETS, findPreset, makeChannel } from '../data/presets';
+import { MIN_FSW_KHZ, clampFreqKhz } from './limits';
 import type { ChannelConfig, CodeTarget, CountMode, ProjectState } from '../types';
 
 /**
@@ -97,7 +98,7 @@ function sanitizeChannel(raw: unknown, index: number): ChannelConfig {
     name: typeof o.name === 'string' && o.name.trim() ? o.name : `ePWM${id} 桥臂`,
     enabled: bool(o.enabled, true),
     independentFreq: bool(o.independentFreq, false),
-    customFreqKhz: num(o.customFreqKhz, 100, 0.05, 500),
+    customFreqKhz: num(o.customFreqKhz, 100, MIN_FSW_KHZ, 1e7),
     duty: num(o.duty, 50, 0.5, 99.5),
     dutyB: num(o.dutyB, 50, 0.5, 99.5),
     phase: num(o.phase, 0, 0, 360),
@@ -130,14 +131,21 @@ export function sanitizeProject(raw: unknown): ProjectState {
   channels[0].phase = 0;
 
   const deviceId = typeof o.deviceId === 'string' && DEVICES[o.deviceId] ? o.deviceId : def.deviceId;
+  const device = DEVICES[deviceId] ?? DEVICES[DEFAULT_DEVICE_ID];
+  const countMode = pick(o.countMode, COUNT_MODES, def.countMode);
+  // 频率上限不再写死：按器件 TBCLK 与计数模式算出可行域
+  const freqKhz = clampFreqKhz(num(o.freqKhz, def.freqKhz, MIN_FSW_KHZ, 1e7), device.tbclkMHz, countMode);
+  channels.forEach(ch => {
+    ch.customFreqKhz = clampFreqKhz(ch.customFreqKhz, device.tbclkMHz, countMode);
+  });
   const trip = (o.tripZone ?? {}) as Record<string, unknown>;
   const adc = (o.adcTrigger ?? {}) as Record<string, unknown>;
 
   return {
     schemaVersion: SCHEMA_VERSION,
     deviceId,
-    freqKhz: num(o.freqKhz, def.freqKhz, 0.05, 500),
-    countMode: pick(o.countMode, COUNT_MODES, def.countMode),
+    freqKhz,
+    countMode,
     phaseSystem: pick(o.phaseSystem, ['1P', '3P'] as const, def.phaseSystem),
     subTopology: typeof o.subTopology === 'string' ? o.subTopology : def.subTopology,
     threePhaseSyncLock: bool(o.threePhaseSyncLock, def.threePhaseSyncLock),

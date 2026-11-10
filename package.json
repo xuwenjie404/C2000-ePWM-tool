@@ -1,6 +1,6 @@
 {
   "name": "c2000-epwm-tool",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "private": true,
   "type": "module",
   "description": "TI C2000 ePWM 图形化配置与代码生成平台：headless 内核 + 注册表扩展点 + CLI，覆盖时基/死区仿真/移相/SPWM/SVPWM/Trip-Zone",

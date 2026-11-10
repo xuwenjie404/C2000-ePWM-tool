@@ -171,7 +171,7 @@ function ModulationEnvelope({
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full cursor-crosshair rounded-lg border border-slate-800 bg-[#070b12]"
+        className="w-full cursor-crosshair rounded-lg border border-slate-800 bg-[#0a0b0d]"
         onPointerDown={e => {
           handleSeek(e.clientX, e.currentTarget);
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -438,7 +438,7 @@ export function WaveformPanel({
                   svgRefs.current[ch.cfg.id] = el;
                 }}
                 viewBox={`0 0 ${SVG_W} 156`}
-                className="w-full select-none rounded-lg border border-slate-800 bg-[#070b12]"
+                className="w-full select-none rounded-lg border border-slate-800 bg-[#0a0b0d]"
               >
                 {/* 时间刻度 */}
                 {Array.from({ length: PERIODS * 4 + 1 }).map((_, i) => {

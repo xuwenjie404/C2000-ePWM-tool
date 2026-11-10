@@ -4,7 +4,13 @@ import { topologiesFor } from '../data/topologies';
 import type { ProjectState } from '../types';
 import type { HardwareModel } from '../lib/hardware';
 import { maxLinearModIndex, modulationSamplingInfo } from '../lib/modulation';
+import { freqRangeKhz } from '../lib/limits';
 import { Badge, Btn, Card, Field, PanelHeader, Segmented, Select, Slider, Stat } from './ui';
+
+/** 频率范围文本：小于 1 kHz 用 Hz 显示，避免 "0.02 ~ 3000 kHz" 这种难读的写法 */
+function fmtFreq(khz: number): string {
+  return khz < 1 ? `${Math.round(khz * 1000)} Hz` : `${Number(khz.toPrecision(4))} kHz`;
+}
 
 const FUND_FREQS = [
   { v: 50, label: '50 Hz 工频' },
@@ -25,6 +31,8 @@ export function ControlPanel({ project, hw, onPatch, onTopology, onPreset }: Pro
   const tb = hw.master.tb;
   const limit = maxLinearModIndex(project.modulationMode);
   const sampling = modulationSamplingInfo(project.freqKhz, project.fundFreqHz, project.countMode);
+  // 频率上限由器件 TBCLK 与计数模式推出，不再写死 500 kHz
+  const freqRange = freqRangeKhz(hw.device.tbclkMHz, project.countMode);
 
   return (
     <Card>
@@ -114,11 +122,12 @@ export function ControlPanel({ project, hw, onPatch, onTopology, onPreset }: Pro
           value={project.freqKhz}
           unit="kHz"
           decimals={2}
-          min={0.05}
-          max={500}
-          step={0.05}
+          min={freqRange.minKhz}
+          max={freqRange.maxKhz}
+          step={0.01}
+          log
           onChange={v => onPatch({ freqKhz: v })}
-          hint={`实际 ${tb.actualFswKhz.toFixed(3)} kHz（误差 ${tb.freqErrorPct.toFixed(3)}%）· 周期 ${tb.periodNs.toFixed(0)} ns`}
+          hint={`实际 ${tb.actualFswKhz.toFixed(3)} kHz（误差 ${tb.freqErrorPct.toFixed(3)}%）· 可用 ${fmtFreq(freqRange.minKhz)} ~ ${fmtFreq(freqRange.maxKhz)} kHz`}
         />
 
         {/* 时基解算结果 */}

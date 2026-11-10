@@ -13,7 +13,8 @@ import { Badge } from './components/ui';
 import { Icon } from './components/Icon';
 import { makeChannel } from './data/presets';
 import { getTopology } from './data/topologies';
-import { DEVICES } from './data/devices';
+import { DEVICES, DEFAULT_DEVICE_ID } from './data/devices';
+import { clampFreqKhz } from './lib/limits';
 import { resolveHardware } from './lib/hardware';
 import { validateProject } from './lib/validation';
 import { generateCode, generateSingleFile } from './lib/targets';
@@ -96,7 +97,15 @@ export default function App() {
   }, [notice]);
 
   const patch = useCallback((p: Partial<ProjectState>) => {
-    setProject(prev => ({ ...prev, ...p }));
+    setProject(prev => {
+      const next = { ...prev, ...p };
+      // 换器件或换计数模式后，原频率可能落到新的可行域之外（上限由 TBCLK 决定）
+      if (p.deviceId !== undefined || p.countMode !== undefined) {
+        const dev = DEVICES[next.deviceId] ?? DEVICES[DEFAULT_DEVICE_ID];
+        next.freqKhz = clampFreqKhz(next.freqKhz, dev.tbclkMHz, next.countMode);
+      }
+      return next;
+    });
   }, []);
 
   const updateChannel = useCallback((id: number, raw: Partial<ChannelConfig>) => {
@@ -263,7 +272,7 @@ export default function App() {
   const protection = protectionSummary(project);
 
   return (
-    <div className="min-h-screen bg-[#070b12] text-slate-100">
+    <div className="min-h-screen bg-[#0a0b0d] text-slate-100">
       <Header
         viewMode={viewMode}
         onView={setViewMode}

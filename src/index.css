@@ -3,6 +3,57 @@
 /* legacy/ 是重构前的单文件存档，不参与构建：不扫描它的 class，避免撑大 CSS */
 @source not '../legacy';
 
+/*
+ * 配色：低饱和、偏中性灰的「仪器面板」风格。
+ *
+ * 做法是不改组件里的类名（sky/emerald/amber/rose/violet 仍在用），
+ * 只在这里重定义这几个色阶 —— 全局饱和度一次性降下来，
+ * 同时把 slate 中性色换成略带冷调的石墨灰，避免原来的藏青色偏蓝。
+ */
+@theme {
+  /* 中性面：石墨灰，比原来的 #070b12 / #0d1424 更沉、更中性 */
+  --color-slate-950: #101216;
+  --color-slate-900: #17191d;
+  --color-slate-800: #23262b;
+  --color-slate-700: #31353b;
+  --color-slate-600: #4a4f56;
+  --color-slate-500: #6b7078;
+  --color-slate-400: #8d939b;
+  --color-slate-300: #aeb4bc;
+  --color-slate-200: #ced3d9;
+  --color-slate-100: #e6e8ec;
+
+  /* 主强调：雾蓝（原来是高饱和的 sky-500） */
+  --color-sky-300: #a8c0d4;
+  --color-sky-400: #8aa6bd;
+  --color-sky-500: #6f93b0;
+  --color-sky-600: #587b95;
+
+  /* 次强调：苔绿 */
+  --color-emerald-300: #a9c2ac;
+  --color-emerald-400: #8fb294;
+  --color-emerald-500: #729478;
+  --color-emerald-600: #5b7a61;
+
+  /* 提示：黄铜（替代刺眼的琥珀） */
+  --color-amber-300: #d6c39a;
+  --color-amber-400: #c5ab77;
+  --color-amber-500: #ad9159;
+  --color-amber-600: #8f7748;
+
+  /* 调制相关：灰紫 */
+  --color-violet-300: #b6b2c9;
+  --color-violet-400: #9d97b3;
+  --color-violet-500: #837c99;
+  --color-violet-600: #6a647d;
+
+  /* 错误：陶土红（替代荧光玫红） */
+  --color-rose-300: #d2a8a0;
+  --color-rose-400: #c39389;
+  --color-rose-500: #ab7870;
+  --color-rose-600: #8d5f58;
+}
+
 @layer base {
   /*
    * 全局排版约束：所有文字不小于 16px（12pt），
@@ -15,8 +66,8 @@
 
   body {
     margin: 0;
-    background-color: #070b12;
-    color: #e2e8f0;
+    background-color: #0a0b0d;
+    color: #e6e8ec;
     font-family:
       'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -30,7 +81,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #38bdf8;
+    outline: 2px solid #6f93b0;
     outline-offset: 2px;
   }
 }
@@ -38,7 +89,7 @@
 /* 细滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #334155 transparent;
+  scrollbar-color: #31353b transparent;
 }
 
 *::-webkit-scrollbar {
@@ -47,19 +98,19 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #31353b;
   border-radius: 6px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #4a4f56;
 }
 
 *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* 拖动波形手柄时避免选中文字 */
+/* 拖动波形抓手时避免选中文字 */
 .dragging,
 .dragging * {
   user-select: none;

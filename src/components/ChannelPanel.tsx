@@ -1,6 +1,7 @@
 import { DB_IN_MODES, DEADBAND_MODES, DEADBAND_MODE_LIST, DB_IN_MODE_LIST } from '../data/deadband';
 import type { ChannelConfig, ProjectState } from '../types';
 import type { HardwareModel, ResolvedChannel } from '../lib/hardware';
+import { freqRangeKhz } from '../lib/limits';
 import { Badge, Btn, Card, PanelHeader, Select, Slider, cx } from './ui';
 import { Icon } from './Icon';
 
@@ -14,11 +15,13 @@ interface Props {
 
 function ChannelCard({
   ch,
+  project,
   hw,
   onChannelChange,
   onRemoveChannel,
 }: {
   ch: ResolvedChannel;
+  project: ProjectState;
   hw: HardwareModel;
   onChannelChange: (id: number, patch: Partial<ChannelConfig>) => void;
   onRemoveChannel: (id: number) => void;
@@ -93,9 +96,10 @@ function ChannelCard({
           value={cfg.customFreqKhz}
           unit="kHz"
           decimals={2}
-          min={0.05}
-          max={500}
-          step={0.05}
+          min={freqRangeKhz(hw.device.tbclkMHz, project.countMode).minKhz}
+          max={freqRangeKhz(hw.device.tbclkMHz, project.countMode).maxKhz}
+          step={0.01}
+          log
           onChange={v => onChannelChange(cfg.id, { customFreqKhz: v })}
           hint={`TBPRD ${ch.tb.tbprd} · PHSEN 将被关闭`}
         />
@@ -276,6 +280,7 @@ export function ChannelPanel({ project, hw, onChannelChange, onRemoveChannel, on
           <ChannelCard
             key={ch.cfg.id}
             ch={ch}
+            project={project}
             hw={hw}
             onChannelChange={onChannelChange}
             onRemoveChannel={onRemoveChannel}

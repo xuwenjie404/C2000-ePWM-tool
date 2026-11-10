@@ -10,6 +10,7 @@ import {
   sanitizeProject,
 } from './project';
 import { resolveHardware } from './hardware';
+import { freqRangeKhz } from './limits';
 
 describe('版本迁移', () => {
   it('v0 工程（原始单文件工具导出）能升级到当前版本', () => {
@@ -83,6 +84,7 @@ describe('边界钳位', () => {
     expect(ch.duty).toBeLessThanOrEqual(99.5);
     expect(ch.phase).toBe(0);
     expect(ch.redNs).toBe(0);
-    expect(ch.customFreqKhz).toBe(500);
+    // 频率上限由器件 TBCLK 推出（120 MHz 增减计数约 3 MHz），不再是写死的 500
+    expect(ch.customFreqKhz).toBe(freqRangeKhz(120, 'UP_DOWN').maxKhz);
   });
 });

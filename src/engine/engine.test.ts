@@ -73,7 +73,7 @@ describe('内核可脱离 UI 独立运行', () => {
 
 describe('扩展点都已装配', () => {
   it('器件 / 拓扑 / 代码目标 / 校验规则 注册表非空', () => {
-    expect(deviceRegistry.size).toBe(4);
+    expect(deviceRegistry.size).toBeGreaterThanOrEqual(6);
     expect(topologyRegistry.size).toBe(6);
     expect(codegenRegistry.size).toBe(3);
     expect(validationRegistry.size).toBeGreaterThanOrEqual(15);

@@ -55,8 +55,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!error) return this.props.children;
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#070b12] p-6 text-slate-100">
-        <div className="w-full max-w-3xl space-y-4 rounded-2xl border border-rose-500/40 bg-[#0d1424] p-6 shadow-2xl">
+      <div className="flex min-h-screen items-center justify-center bg-[#0a0b0d] p-6 text-slate-100">
+        <div className="w-full max-w-3xl space-y-4 rounded-2xl border border-rose-500/40 bg-[#141619] p-6 shadow-2xl">
           <div className="flex items-center gap-2.5 text-rose-300">
             <Icon name="alert" size={24} />
             <h1 className="text-lg font-bold text-white">界面渲染失败</h1>
@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<Props, State> {
             如果问题可复现，请把下面的信息连同「分享链接」一起提交到 issue。
           </p>
 
-          <pre className="max-h-52 overflow-auto rounded-xl border border-slate-800 bg-[#070a10] p-3 font-mono text-base text-rose-200">
+          <pre className="max-h-52 overflow-auto rounded-xl border border-slate-800 bg-[#0b0c0e] p-3 font-mono text-base text-rose-200">
             {error.name}: {error.message}
             {this.state.info ? `\n${this.state.info}` : ''}
           </pre>

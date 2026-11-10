@@ -12,6 +12,8 @@ import type { DeviceModel, PinOption } from '../types';
  *  3. 引脚号对应具体封装，换封装（如 64-Pin PM / 100-Pin PZ）时务必按数据手册
  *     核对，或在 UI 里点击备选引脚切换。
  *  4. 数据可在本文件集中校正，不需要改动任何 UI 或计算逻辑。
+ *  5. F28377D / F280025C 的 GPIO 复用表沿用同族器件（F2837x / F28003x），
+ *     引脚号仍需按各自封装的数据手册核对后再上板。
  */
 
 const F28003X_MUX: Record<string, PinOption[]> = {
@@ -101,6 +103,23 @@ export const DEVICES: Record<string, DeviceModel> = {
     muxOptions: F28003X_MUX,
     powerPins: [1, 14, 25, 32, 51, 64],
   },
+  F280025C: {
+    id: 'F280025C',
+    name: 'TMS320F280025C',
+    package: '64-Pin LQFP (PM)',
+    series: 'Gen-3 C28x (Type-4 ePWM)',
+    generation: 'TYPE4',
+    sysclkMHz: 100,
+    tbclkMHz: 100,
+    epwmModules: 8,
+    hasHRPWM: true,
+    mepStepPs: 150,
+    dbMaxBits: 14,
+    dbMaxCount: 16383,
+    desc: '100 MHz 入门数字电源芯片，EPWMCLK = SYSCLK = 100 MHz，8 路 ePWM，Type-4 死区。',
+    muxOptions: F28003X_MUX,
+    powerPins: [1, 14, 25, 32, 51, 64],
+  },
   F280049C: {
     id: 'F280049C',
     name: 'TMS320F280049C',
@@ -117,6 +136,23 @@ export const DEVICES: Record<string, DeviceModel> = {
     desc: '100 MHz 数字电源控制芯片，Type-4 ePWM，支持独立变频分频与 14-bit 独立死区。',
     muxOptions: F28003X_MUX,
     powerPins: [1, 14, 25, 32, 51, 64],
+  },
+  F28377D: {
+    id: 'F28377D',
+    name: 'TMS320F28377D',
+    package: '100-Pin QFP (PZ)',
+    series: 'Dual-Core C28x + CLA (Type-4 ePWM)',
+    generation: 'TYPE4',
+    sysclkMHz: 200,
+    tbclkMHz: 100,
+    epwmModules: 12,
+    hasHRPWM: true,
+    mepStepPs: 150,
+    dbMaxBits: 14,
+    dbMaxCount: 16383,
+    desc: '200 MHz 双核，EPWMCLK = SYSCLK/2 = 100 MHz，12 路 ePWM，Type-4 死区与 HRPWM。',
+    muxOptions: F2837X_MUX,
+    powerPins: [],
   },
   F28379D: {
     id: 'F28379D',

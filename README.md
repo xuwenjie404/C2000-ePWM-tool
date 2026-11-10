@@ -105,7 +105,7 @@ import { sanitizeProject, resolveHardware, validateProject, generateCode } from 
 
 | 分区 | 能力 |
 | --- | --- |
-| 时基 | 自动求解 `CLKDIV / HSPCLKDIV / TBPRD`，给出实际频率误差与占空比 LSB；不可达时提示钳位 |
+| 时基 | 自动求解 `CLKDIV / HSPCLKDIV / TBPRD`；**频率范围按器件 TBCLK 推导**（120 MHz 器件约 10 Hz ~ 3 MHz），对数滑块 + 数值输入 |
 | 计数模式 | 增减对称与单向递增，两种模式的比较值语义与 AQ 配置完全分开处理 |
 | 死区 | `AHC / ALC / AH / AL / BYPASS` × `DBA_ALL / DBB_* / DBB_ALL`，`DBRED`/`DBFED` 独立可调、可对称锁定 |
 | 波形 | 按 TRM 边沿延迟语义**仿真** ePWMxA/B，显示死区阴影、占空比损失、脉宽被吞；拖拽 RED / FED / Duty / 移相手柄 |
@@ -166,7 +166,7 @@ EPWM_setPhase(2, 120.0f);      // 移相，自动选择 PHSDIR
 
 ## 质量与工程化
 
-* **153 个单元测试**：计算内核、死区波形、校验规则、代码生成、运行时 API、版本迁移、JSON Schema、注册表、SSR 冒烟；
+* **172 个单元测试**：计算内核、死区波形、抓手几何（像素级）、校验规则、代码生成、运行时 API、版本迁移、JSON Schema、注册表、SSR 冒烟；
 * **契约测试**：`schema/project.schema.json` + ajv，防止代码与数据契约漂移；
 * **CI**：类型检查 → 测试 → 构建 → 内核构建 → CLI 端到端；
 * **部署**：push 到 `main` 自动发布 GitHub Pages（`base: './'`，任意子路径可用）；

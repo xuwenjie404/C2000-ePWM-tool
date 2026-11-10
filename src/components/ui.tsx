@@ -15,7 +15,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <section
       className={cx(
-        'bg-[#0d1424] border border-slate-800 rounded-2xl shadow-xl shadow-black/30',
+        'bg-[#141619] border border-slate-800 rounded-2xl shadow-xl shadow-black/30',
         className,
       )}
     >
@@ -90,7 +90,7 @@ export function Btn({
         'disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
         compact ? 'px-2.5 py-1.5 text-base' : 'px-3.5 py-2 text-base',
         VARIANT_CLASS[variant],
-        active && 'ring-2 ring-sky-300/70 ring-offset-1 ring-offset-[#0d1424]',
+        active && 'ring-2 ring-sky-300/70 ring-offset-1 ring-offset-[#141619]',
         className,
       )}
       {...rest}
@@ -250,11 +250,13 @@ function useNumberDraft(value: number, { min, max, step, onChange }: NumberDraft
 const NUMBER_INPUT_CLASS =
   'bg-transparent text-right font-mono text-base font-bold text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
+const LOG_STEPS = 1000;
+
 /**
  * 统一参数控件：标签 + 可直接输入的数值框 + 滑块 + 范围提示。
  *
- * 三组关键参数（开关频率 / 占空比 / 死区）都用它渲染，
- * 因此标签行、输入框、滑块的基线天然对齐，不需要各自调 padding。
+ * `log` 打开后滑块走对数刻度 —— 频率范围跨 5 个数量级（10 Hz ~ 3 MHz），
+ * 线性滑块根本拖不到低频段。
  */
 export function Slider({
   label,
@@ -268,6 +270,7 @@ export function Slider({
   tone = 'sky',
   hint,
   disabled,
+  log = false,
 }: {
   label: string;
   value: number;
@@ -280,9 +283,17 @@ export function Slider({
   tone?: Tone;
   hint?: string;
   disabled?: boolean;
+  /** 对数刻度：适合频率这类跨数量级的参数 */
+  log?: boolean;
 }) {
   const { draft, setDraft, commit, outOfRange } = useNumberDraft(value, { min, max, step, onChange });
   const rangeText = `${fmtNum(min)} ~ ${fmtNum(max)}${unit ? ` ${unit}` : ''}`;
+
+  const useLog = log && min > 0 && max > min;
+  const toPos = (v: number) =>
+    useLog ? Math.round((Math.log(Math.max(v, min) / min) / Math.log(max / min)) * LOG_STEPS) : v;
+  const fromPos = (pos: number) =>
+    useLog ? Number((min * Math.pow(max / min, pos / LOG_STEPS)).toPrecision(4)) : pos;
 
   return (
     <div className={cx('min-w-0', disabled && 'opacity-50')}>
@@ -327,12 +338,12 @@ export function Slider({
 
       <input
         type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={Math.max(min, Math.min(max, value))}
+        min={useLog ? 0 : min}
+        max={useLog ? LOG_STEPS : max}
+        step={useLog ? 1 : step}
+        value={useLog ? toPos(value) : Math.max(min, Math.min(max, value))}
         disabled={disabled}
-        onChange={e => onChange(Number(e.target.value))}
+        onChange={e => onChange(fromPos(Number(e.target.value)))}
         aria-label={label}
         className={cx('mt-1.5 w-full cursor-pointer', ACCENT[tone])}
       />

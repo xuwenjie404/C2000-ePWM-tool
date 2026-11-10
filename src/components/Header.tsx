@@ -35,7 +35,7 @@ export function Header({
   protection,
 }: Props) {
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#0b111e]/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#101215]/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/30">

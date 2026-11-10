@@ -157,7 +157,7 @@ export function CodePanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-[#070a10] p-3">
+      <div className="flex-1 overflow-auto bg-[#0b0c0e] p-3">
         <pre className="font-mono text-base leading-relaxed">
           <code>
             {lines.map((line, i) => (
