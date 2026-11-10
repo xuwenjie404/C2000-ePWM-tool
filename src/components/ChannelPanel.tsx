@@ -2,6 +2,7 @@ import { DB_IN_MODES, DEADBAND_MODES, DEADBAND_MODE_LIST, DB_IN_MODE_LIST } from
 import type { ChannelConfig, ProjectState } from '../types';
 import type { HardwareModel, ResolvedChannel } from '../lib/hardware';
 import { freqRangeKhz } from '../lib/limits';
+import { useI18n } from '../i18n';
 import { Badge, Btn, Card, PanelHeader, Select, Slider, cx } from './ui';
 import { Icon } from './Icon';
 
@@ -26,6 +27,7 @@ function ChannelCard({
   onChannelChange: (id: number, patch: Partial<ChannelConfig>) => void;
   onRemoveChannel: (id: number) => void;
 }) {
+  const { t } = useI18n();
   const cfg = ch.cfg;
   const isMaster = cfg.id === 1;
   // 与波形面板共用同一上限，避免两处滑块的可用范围不一致
@@ -34,7 +36,7 @@ function ChannelCard({
   return (
     <div
       className={cx(
-        'space-y-3 rounded-xl border bg-slate-950/70 p-3.5',
+        'space-y-3 rounded-md border p-3.5',
         cfg.enabled ? 'border-slate-800' : 'border-slate-800/60 opacity-60',
       )}
     >
@@ -52,19 +54,19 @@ function ChannelCard({
             value={cfg.name}
             onChange={e => onChannelChange(cfg.id, { name: e.target.value })}
             className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-base font-semibold text-white hover:border-slate-700 focus:border-sky-500 focus:outline-none"
-            aria-label={`ePWM${cfg.id} 名称`}
+            aria-label={t(`ePWM${cfg.id} 名称`, `ePWM${cfg.id} name`)}
           />
         </div>
         <div className="flex items-center gap-1.5">
           <Btn compact variant={cfg.enabled ? 'accent' : 'ghost'} onClick={() => onChannelChange(cfg.id, { enabled: !cfg.enabled })}>
-            {cfg.enabled ? '已启用' : '已停用'}
+            {cfg.enabled ? t('已启用', 'Enabled') : t('已停用', 'Disabled')}
           </Btn>
           {!isMaster && (
             <button
               type="button"
               onClick={() => onRemoveChannel(cfg.id)}
               className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-rose-500/15 hover:text-rose-300"
-              title="删除该桥臂"
+              title={t('删除该桥臂', 'Delete this leg')}
             >
               <Icon name="trash" size={16} />
             </button>
@@ -79,11 +81,16 @@ function ChannelCard({
             variant={cfg.independentFreq ? 'warn' : 'ghost'}
             onClick={() => onChannelChange(cfg.id, { independentFreq: !cfg.independentFreq })}
           >
-            {cfg.independentFreq ? '独立频率时基' : '跟随主频锁相'}
+            {cfg.independentFreq
+              ? t('独立频率时基', 'Independent frequency time base')
+              : t('跟随主频锁相', 'Phase-locked to master')}
           </Btn>
           {!cfg.independentFreq && (
             <Badge tone="emerald" mono>
-              移相 {cfg.phase}° → TBPHS {ch.phase.tbphs} / {ch.phase.phsDir}
+              {t(
+                `移相 ${cfg.phase}° → TBPHS ${ch.phase.tbphs} / ${ch.phase.phsDir}`,
+                `Phase shift ${cfg.phase}° → TBPHS ${ch.phase.tbphs} / ${ch.phase.phsDir}`,
+              )}
             </Badge>
           )}
         </div>
@@ -91,7 +98,7 @@ function ChannelCard({
 
       {cfg.independentFreq && !isMaster ? (
         <Slider
-          label="通道独立开关频率"
+          label={t('通道独立开关频率', 'Channel independent switching frequency')}
           tone="amber"
           value={cfg.customFreqKhz}
           unit="kHz"
@@ -101,12 +108,12 @@ function ChannelCard({
           step={0.01}
           log
           onChange={v => onChannelChange(cfg.id, { customFreqKhz: v })}
-          hint={`TBPRD ${ch.tb.tbprd} · PHSEN 将被关闭`}
+          hint={t(`TBPRD ${ch.tb.tbprd} · PHSEN 将被关闭`, `TBPRD ${ch.tb.tbprd} · PHSEN will be disabled`)}
         />
       ) : (
         !isMaster && (
           <Slider
-            label="相对主通道移相角 Δφ"
+            label={t('相对主通道移相角 Δφ', 'Phase shift vs. master Δφ')}
             tone="emerald"
             value={cfg.phase}
             unit="°"
@@ -114,13 +121,16 @@ function ChannelCard({
             min={0}
             max={360}
             onChange={v => onChannelChange(cfg.id, { phase: v })}
-            hint={`等效延迟 ${ch.phase.delayNs.toFixed(0)} ns`}
+            hint={t(
+              `等效延迟 ${ch.phase.delayNs.toFixed(0)} ns`,
+              `Equivalent delay ${ch.phase.delayNs.toFixed(0)} ns`,
+            )}
           />
         )
       )}
 
       <Slider
-        label={`ePWM${cfg.id}A 占空比`}
+        label={t(`ePWM${cfg.id}A 占空比`, `ePWM${cfg.id}A duty cycle`)}
         value={cfg.duty}
         unit="%"
         decimals={1}
@@ -128,12 +138,15 @@ function ChannelCard({
         max={99.5}
         step={0.1}
         onChange={v => onChannelChange(cfg.id, { duty: v })}
-        hint={`CMPA = ${ch.cmpA} · 死区后实际 ${ch.wave.actualDutyAPct.toFixed(2)}%`}
+        hint={t(
+          `CMPA = ${ch.cmpA} · 死区后实际 ${ch.wave.actualDutyAPct.toFixed(2)}%`,
+          `CMPA = ${ch.cmpA} · actual after dead-band ${ch.wave.actualDutyAPct.toFixed(2)}%`,
+        )}
       />
 
       {cfg.mode === 'BYPASS' && (
         <Slider
-          label={`ePWM${cfg.id}B 独立占空比`}
+          label={t(`ePWM${cfg.id}B 独立占空比`, `ePWM${cfg.id}B independent duty cycle`)}
           value={cfg.dutyB}
           unit="%"
           decimals={1}
@@ -141,21 +154,24 @@ function ChannelCard({
           max={99.5}
           step={0.1}
           onChange={v => onChannelChange(cfg.id, { dutyB: v })}
-          hint={`CMPB = ${ch.cmpB} · 死区后实际 ${ch.wave.actualDutyBPct.toFixed(2)}%`}
+          hint={t(
+            `CMPB = ${ch.cmpB} · 死区后实际 ${ch.wave.actualDutyBPct.toFixed(2)}%`,
+            `CMPB = ${ch.cmpB} · actual after dead-band ${ch.wave.actualDutyBPct.toFixed(2)}%`,
+          )}
         />
       )}
 
       {/* ---- 死区：放在占空比之后、卡片上部，避免藏在底部 ---- */}
       <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.04] p-3.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-base font-bold text-amber-300">死区时间 (Dead-Band)</span>
+          <span className="text-base font-bold text-amber-300">{t('死区时间 (Dead-Band)', 'Dead-band time')}</span>
           {cfg.mode !== 'BYPASS' && (
             <Btn
               compact
               variant={cfg.lockDb ? 'warn' : 'ghost'}
               onClick={() => onChannelChange(cfg.id, { lockDb: !cfg.lockDb })}
             >
-              {cfg.lockDb ? 'RED = FED 锁定' : '独立调节'}
+              {cfg.lockDb ? t('RED = FED 锁定', 'RED = FED locked') : t('独立调节', 'Adjust independently')}
             </Btn>
           )}
         </div>
@@ -163,7 +179,7 @@ function ChannelCard({
         {cfg.mode !== 'BYPASS' && (
           <>
             <Slider
-              label="上升沿死区 RED"
+              label={t('上升沿死区 RED', 'Rising-edge dead-band RED')}
               tone="amber"
               value={cfg.redNs}
               unit="ns"
@@ -172,10 +188,13 @@ function ChannelCard({
               max={maxDb}
               step={10}
               onChange={v => onChannelChange(cfg.id, { redNs: v })}
-              hint={`DBRED = ${ch.dbRed} · A 管开通前插入 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns`}
+              hint={t(
+                `DBRED = ${ch.dbRed} · A 管开通前插入 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns`,
+                `DBRED = ${ch.dbRed} · inserted ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns before A turns on`,
+              )}
             />
             <Slider
-              label="下降沿死区 FED"
+              label={t('下降沿死区 FED', 'Falling-edge dead-band FED')}
               tone="amber"
               value={cfg.fedNs}
               unit="ns"
@@ -184,28 +203,31 @@ function ChannelCard({
               max={maxDb}
               step={10}
               onChange={v => onChannelChange(cfg.id, { fedNs: v })}
-              hint={`DBFED = ${ch.dbFed} · B 管开通前插入 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns`}
+              hint={t(
+                `DBFED = ${ch.dbFed} · B 管开通前插入 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns`,
+                `DBFED = ${ch.dbFed} · inserted ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns before B turns on`,
+              )}
             />
           </>
         )}
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-base text-slate-300">输出模式 (DBCTL.POLSEL)</span>
+            <span className="mb-1 block text-base text-slate-300">{t('输出模式 (DBCTL.POLSEL)', 'Output mode (DBCTL.POLSEL)')}</span>
             <Select value={cfg.mode} onChange={v => onChannelChange(cfg.id, { mode: v as ChannelConfig['mode'] })}>
               {DEADBAND_MODE_LIST.map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {t(m.name, m.nameEn)}
                 </option>
               ))}
             </Select>
           </label>
           <label className="block">
-            <span className="mb-1 block text-base text-slate-300">输入源 (DBCTL.IN_MODE)</span>
+            <span className="mb-1 block text-base text-slate-300">{t('输入源 (DBCTL.IN_MODE)', 'Input source (DBCTL.IN_MODE)')}</span>
             <Select value={cfg.inMode} onChange={v => onChannelChange(cfg.id, { inMode: v as ChannelConfig['inMode'] })}>
               {DB_IN_MODE_LIST.map(m => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {t(m.name, m.nameEn)}
                 </option>
               ))}
             </Select>
@@ -213,19 +235,24 @@ function ChannelCard({
         </div>
 
         <p className="text-base leading-snug text-slate-400">
-          {DEADBAND_MODES[cfg.mode].description}
+          {t(DEADBAND_MODES[cfg.mode].description, DEADBAND_MODES[cfg.mode].descriptionEn)}
           {DB_IN_MODES[cfg.inMode].crossSource && (
-            <span className="ml-1 text-amber-400">（交叉输入模式的波形为示意）</span>
+            <span className="ml-1 text-amber-400">
+              {t('（交叉输入模式的波形为示意）', '(waveform is illustrative in crossed input mode)')}
+            </span>
           )}
         </p>
       </div>
 
       {hw.device.hasHRPWM && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-800 px-3 py-2">
           <div>
-            <span className="text-base font-semibold text-white">HRPWM 高分辨率</span>
+            <span className="text-base font-semibold text-white">{t('HRPWM 高分辨率', 'HRPWM high resolution')}</span>
             <p className="text-base text-slate-500">
-              MEP 步进 {hw.device.mepStepPs} ps，CMPAHR = 0x{ch.hrpwm.cmpahr.toString(16).toUpperCase().padStart(4, '0')}
+              {t(
+                `MEP 步进 ${hw.device.mepStepPs} ps，CMPAHR = 0x${ch.hrpwm.cmpahr.toString(16).toUpperCase().padStart(4, '0')}`,
+                `MEP step ${hw.device.mepStepPs} ps, CMPAHR = 0x${ch.hrpwm.cmpahr.toString(16).toUpperCase().padStart(4, '0')}`,
+              )}
             </p>
           </div>
           <Btn
@@ -233,12 +260,12 @@ function ChannelCard({
             variant={cfg.hrpwm ? 'accent' : 'ghost'}
             onClick={() => onChannelChange(cfg.id, { hrpwm: !cfg.hrpwm })}
           >
-            {cfg.hrpwm ? '已开启' : '未开启'}
+            {cfg.hrpwm ? t('已开启', 'Enabled') : t('未开启', 'Disabled')}
           </Btn>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-slate-800 bg-slate-900/40 p-2.5 font-mono text-base">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-slate-800 p-2.5 font-mono text-base">
         <span className="text-slate-400">
           TBPRD <span className="text-sky-300">{ch.tb.tbprd}</span>
         </span>
@@ -263,15 +290,19 @@ function ChannelCard({
 }
 
 export function ChannelPanel({ project, hw, onChannelChange, onRemoveChannel, onAddChannel }: Props) {
+  const { t } = useI18n();
   return (
     <Card>
       <PanelHeader
         icon="sliders"
-        title="逐通道精细参数"
-        hint="死区模式、输入源、独立频率、占空比与 RED/FED 都在这里逐个配置；三相联动锁开启时，死区参数会同步到 U/V/W。"
+        title={t('逐通道精细参数', 'Per-channel parameters')}
+        hint={t(
+          '死区模式、输入源、独立频率、占空比与 RED/FED 都在这里逐个配置；三相联动锁开启时，死区参数会同步到 U/V/W。',
+          'Configure dead-band mode, input source, independent frequency, duty cycle and RED/FED per channel. With the 3-phase sync lock on, dead-band settings are mirrored to U/V/W.',
+        )}
         right={
           <Btn variant="primary" icon="plus" onClick={onAddChannel} disabled={project.channels.length >= 4}>
-            新增桥臂
+            {t('新增桥臂', 'Add leg')}
           </Btn>
         }
       />

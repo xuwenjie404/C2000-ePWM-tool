@@ -76,6 +76,54 @@ describe('校验规则插件', () => {
   });
 });
 
+describe('双语诊断', () => {
+  it('英文模式下所有 title / detail 都不含中文', () => {
+    const project = sanitizeProject({
+      ...createDefaultProject(),
+      freqKhz: 400,
+      channels: [
+        { id: 1, duty: 3, redNs: 900, fedNs: 100, mode: 'AHC' },
+        { id: 2, duty: 50 },
+        { id: 3, duty: 50 },
+      ],
+    });
+    const hw = resolveHardware(project);
+    const zh = validateProject(project, hw, 'zh');
+    const en = validateProject(project, hw, 'en');
+
+    expect(zh.length).toBeGreaterThan(0);
+    expect(en).toHaveLength(zh.length);
+    // 中文版必须含中文，英文版必须不含
+    const cjk = /[\u4e00-\u9fa5]/;
+    expect(zh.some(i => cjk.test(i.title + i.detail))).toBe(true);
+    for (const issue of en) {
+      expect(cjk.test(issue.title)).toBe(false);
+      expect(cjk.test(issue.detail)).toBe(false);
+    }
+  });
+
+  it('时基告警本身携带中英两段（由 computeTimeBase 产生）', () => {
+    const project = sanitizeProject({ ...createDefaultProject(), freqKhz: 99999 });
+    const hw = resolveHardware(project);
+    const warnings = hw.master.tb.warnings;
+    expect(warnings.length).toBeGreaterThan(0);
+    for (const w of warnings) {
+      expect(w.zh.length).toBeGreaterThan(0);
+      expect(w.en.length).toBeGreaterThan(0);
+      expect(w.zh).not.toBe(w.en);
+    }
+  });
+
+  it('两种语言的 issue id 与严重级完全一致（只是文案不同）', () => {
+    const project = createDefaultProject();
+    const hw = resolveHardware(project);
+    const zh = validateProject(project, hw, 'zh');
+    const en = validateProject(project, hw, 'en');
+    expect(en.map(i => i.id).sort()).toEqual(zh.map(i => i.id).sort());
+    expect(en.map(i => i.severity).sort()).toEqual(zh.map(i => i.severity).sort());
+  });
+});
+
 describe('规则产出的严重级排序', () => {
   it('error 永远排在 warn 与 info 之前', () => {
     const project = sanitizeProject({

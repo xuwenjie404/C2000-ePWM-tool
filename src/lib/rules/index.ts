@@ -50,9 +50,21 @@ validationRegistry
 
 const SEVERITY_ORDER: Record<DiagnosticIssue['severity'], number> = { error: 0, warn: 1, info: 2 };
 
-/** 按 id 运行全部规则，并按严重程度排序 */
-export function validateProject(project: ProjectState, hw: HardwareModel): DiagnosticIssue[] {
-  const ctx: RuleContext = { project, hw, pins: resolvePins(hw) };
+/**
+ * 运行全部规则，并按严重程度排序。
+ * `lang` 决定诊断文案的语言（默认中文，与 UI 默认语言一致）。
+ */
+export function validateProject(
+  project: ProjectState,
+  hw: HardwareModel,
+  lang: 'zh' | 'en' = 'zh',
+): DiagnosticIssue[] {
+  const ctx: RuleContext = {
+    project,
+    hw,
+    pins: resolvePins(hw),
+    t: (zh, en) => (lang === 'zh' ? zh : en),
+  };
   const issues: DiagnosticIssue[] = [];
   for (const rule of validationRegistry.list()) {
     try {
@@ -62,7 +74,7 @@ export function validateProject(project: ProjectState, hw: HardwareModel): Diagn
       issues.push({
         id: `rule-crash-${rule.id}`,
         severity: 'error',
-        title: `校验规则 ${rule.id} 执行失败`,
+        title: ctx.t(`校验规则 ${rule.id} 执行失败`, `Validation rule ${rule.id} failed`),
         detail: error instanceof Error ? error.message : String(error),
       });
     }

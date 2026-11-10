@@ -3,6 +3,7 @@ import type { ChannelConfig, ProjectState } from '../types';
 import type { HardwareModel } from '../lib/hardware';
 import { Badge, Card, PanelHeader, Stat } from './ui';
 import { Icon } from './Icon';
+import { useI18n } from '../i18n';
 
 interface Props {
   project: ProjectState;
@@ -21,6 +22,7 @@ interface PinInfo {
 }
 
 export function PinoutPanel({ hw, onChannelChange }: Props) {
+  const { t } = useI18n();
   const pins = useMemo(() => {
     const map = new Map<number, PinInfo>();
 
@@ -68,7 +70,8 @@ export function PinoutPanel({ hw, onChannelChange }: Props) {
 
   const label = (p: PinInfo): string => {
     if (p.state === 'active') return `#${p.pin} ${p.gpio} · ${p.signal}`;
-    if (p.state === 'alternate') return `#${p.pin} ${p.gpio} · 可切至 ${p.signal}`;
+    if (p.state === 'alternate')
+      return t(`#${p.pin} ${p.gpio} · 可切至 ${p.signal}`, `#${p.pin} ${p.gpio} · can switch to ${p.signal}`);
     if (p.state === 'power') return `#${p.pin} VDD/VSS`;
     return `#${p.pin} GPIO`;
   };
@@ -93,10 +96,12 @@ export function PinoutPanel({ hw, onChannelChange }: Props) {
             badgeClass(p) +
             (p.state === 'alternate' ? ' cursor-pointer hover:border-sky-400 hover:bg-sky-500/15' : '')
           }
-          title={p.state === 'alternate' ? '点击切换到该复用引脚' : undefined}
+          title={p.state === 'alternate' ? t('点击切换到该复用引脚', 'Click to switch to this mux pin') : undefined}
         >
           <span className="truncate font-mono text-base">{label(p)}</span>
-          {p.state === 'alternate' && <span className="shrink-0 text-base underline">切换</span>}
+          {p.state === 'alternate' && (
+            <span className="shrink-0 text-base underline">{t('切换', 'Switch')}</span>
+          )}
           {p.state === 'active' && <Icon name="check" size={14} className="shrink-0" />}
         </button>
       ))}
@@ -107,13 +112,16 @@ export function PinoutPanel({ hw, onChannelChange }: Props) {
     <Card>
       <PanelHeader
         icon="chip"
-        title="引脚复用分配"
-        hint="蓝色虚线为备选复用口，点击即可切换 GPIO 映射，C 代码与引脚占用会同步更新。"
+        title={t('引脚复用分配', 'Pin mux assignment')}
+        hint={t(
+          '蓝色虚线为备选复用口，点击即可切换 GPIO 映射，C 代码与引脚占用会同步更新。',
+          'Dashed blue pins are alternate mux options. Click one to switch the GPIO mapping; the C code and pin usage update together.',
+        )}
         right={
           <div className="flex flex-wrap items-center gap-2 text-base">
-            <Badge tone="emerald">已激活</Badge>
-            <Badge tone="sky">备选可切</Badge>
-            <Badge tone="amber">电源</Badge>
+            <Badge tone="emerald">{t('已激活', 'Active')}</Badge>
+            <Badge tone="sky">{t('备选可切', 'Alternate')}</Badge>
+            <Badge tone="amber">{t('电源', 'Power')}</Badge>
           </div>
         }
       />
@@ -121,20 +129,20 @@ export function PinoutPanel({ hw, onChannelChange }: Props) {
       <div className="grid grid-cols-1 items-stretch gap-3.5 p-4 lg:grid-cols-[1fr_auto_1fr]">
         {renderColumn(pins.left, 'left')}
 
-        <div className="flex min-w-[260px] flex-col items-center justify-center gap-2 rounded-2xl border-4 border-slate-700 bg-slate-950 px-5 py-6 shadow-2xl">
+        <div className="flex min-w-[260px] flex-col items-center justify-center gap-2 rounded-lg border-4 border-slate-700 bg-slate-950 px-5 py-6 shadow-2xl">
           <div className="flex items-center gap-2 text-base tracking-[0.2em] text-slate-500">
             <Icon name="chip" size={16} />
             TEXAS INSTRUMENTS
           </div>
           <div className="text-center text-lg font-extrabold text-white">{hw.device.name}</div>
           <div className="text-base text-emerald-400">{hw.device.package}</div>
-          <div className="mt-2 w-full space-y-1.5 rounded-xl border border-slate-800 bg-slate-900/80 p-3">
-            <Stat label="ePWM 模块" value={`${usedChannels} / ${hw.device.epwmModules}`} tone="sky" />
+          <div className="mt-2 w-full space-y-1.5 rounded-md border border-slate-800 bg-slate-900/80 p-3">
+            <Stat label={t('ePWM 模块', 'ePWM modules')} value={`${usedChannels} / ${hw.device.epwmModules}`} tone="sky" />
             <Stat label="TBCLK" value={`${hw.device.tbclkMHz} MHz`} tone="slate" />
-            <Stat label="死区位宽" value={`${hw.device.dbMaxBits} bit`} tone="amber" />
+            <Stat label={t('死区位宽', 'Dead-band width')} value={`${hw.device.dbMaxBits} bit`} tone="amber" />
             <Stat
               label="HRPWM MEP"
-              value={hw.device.hasHRPWM ? `${hw.device.mepStepPs} ps` : '不支持'}
+              value={hw.device.hasHRPWM ? `${hw.device.mepStepPs} ps` : t('不支持', 'Not supported')}
               tone={hw.device.hasHRPWM ? 'emerald' : 'rose'}
             />
           </div>

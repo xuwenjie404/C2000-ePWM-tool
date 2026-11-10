@@ -4,61 +4,58 @@
 @source not '../legacy';
 
 /*
- * 配色：低饱和、偏中性灰的「仪器面板」风格。
+ * 极简配色。
  *
- * 做法是不改组件里的类名（sky/emerald/amber/rose/violet 仍在用），
- * 只在这里重定义这几个色阶 —— 全局饱和度一次性降下来，
- * 同时把 slate 中性色换成略带冷调的石墨灰，避免原来的藏青色偏蓝。
+ * 原则：
+ *   1. 近单色 —— 只有石墨灰的层次，没有彩色底块；
+ *   2. 一条细线 —— 结构靠 1px 边框，不靠阴影和填充；
+ *   3. 单一强调色 —— 只在「可交互 / 当前选中」处出现；
+ *   4. 语义色降到最低可辨识度 —— 错误/警告只用文字色，不用色块。
+ *
+ * 实现方式：重定义 Tailwind 的色阶，组件类名保持不变。
  */
 @theme {
-  /* 中性面：石墨灰，比原来的 #070b12 / #0d1424 更沉、更中性 */
-  --color-slate-950: #101216;
-  --color-slate-900: #17191d;
-  --color-slate-800: #23262b;
-  --color-slate-700: #31353b;
-  --color-slate-600: #4a4f56;
-  --color-slate-500: #6b7078;
-  --color-slate-400: #8d939b;
-  --color-slate-300: #aeb4bc;
-  --color-slate-200: #ced3d9;
-  --color-slate-100: #e6e8ec;
+  /* 中性面：几乎无彩，层次只靠明度差 */
+  --color-slate-950: #0f1012;
+  --color-slate-900: #141517;
+  --color-slate-800: #1e2023;
+  --color-slate-700: #2a2d31;
+  --color-slate-600: #3d4145;
+  --color-slate-500: #5c6167;
+  --color-slate-400: #858a91;
+  --color-slate-300: #b4b8bd;
+  --color-slate-200: #d6d9dd;
+  --color-slate-100: #ecedef;
 
-  /* 主强调：雾蓝（原来是高饱和的 sky-500） */
-  --color-sky-300: #a8c0d4;
-  --color-sky-400: #8aa6bd;
-  --color-sky-500: #6f93b0;
-  --color-sky-600: #587b95;
+  /* 唯一强调色：冷灰蓝，只用于可交互态 */
+  --color-sky-300: #b9c8d4;
+  --color-sky-400: #9db1c1;
+  --color-sky-500: #8299ac;
+  --color-sky-600: #687e91;
 
-  /* 次强调：苔绿 */
-  --color-emerald-300: #a9c2ac;
-  --color-emerald-400: #8fb294;
-  --color-emerald-500: #729478;
-  --color-emerald-600: #5b7a61;
+  /* 语义色：低饱和，用作文本色而非背景色 */
+  --color-emerald-300: #a8b9ab;
+  --color-emerald-400: #90a493;
+  --color-emerald-500: #78897b;
+  --color-emerald-600: #627264;
 
-  /* 提示：黄铜（替代刺眼的琥珀） */
-  --color-amber-300: #d6c39a;
-  --color-amber-400: #c5ab77;
-  --color-amber-500: #ad9159;
-  --color-amber-600: #8f7748;
+  --color-amber-300: #c3b596;
+  --color-amber-400: #ab9c7c;
+  --color-amber-500: #8f8266;
+  --color-amber-600: #746a54;
 
-  /* 调制相关：灰紫 */
-  --color-violet-300: #b6b2c9;
-  --color-violet-400: #9d97b3;
-  --color-violet-500: #837c99;
-  --color-violet-600: #6a647d;
+  --color-violet-300: #b6b3c2;
+  --color-violet-400: #9c99a9;
+  --color-violet-500: #848191;
+  --color-violet-600: #6b6978;
 
-  /* 错误：陶土红（替代荧光玫红） */
-  --color-rose-300: #d2a8a0;
-  --color-rose-400: #c39389;
-  --color-rose-500: #ab7870;
-  --color-rose-600: #8d5f58;
+  --color-rose-300: #c9a9a3;
+  --color-rose-400: #b28f88;
+  --color-rose-500: #95746e;
+  --color-rose-600: #7a5e59;
 }
 
 @layer base {
-  /*
-   * 全局排版约束：所有文字不小于 16px（12pt），
-   * 便于在投屏 / 图纸评审 / 现场调试时直接阅读。
-   */
   html {
     font-size: 16px;
     -webkit-text-size-adjust: 100%;
@@ -66,11 +63,12 @@
 
   body {
     margin: 0;
-    background-color: #0a0b0d;
-    color: #e6e8ec;
+    background-color: #0b0c0d;
+    color: #ecedef;
     font-family:
       'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   code,
@@ -81,29 +79,34 @@
   }
 
   :focus-visible {
-    outline: 2px solid #6f93b0;
+    outline: 1px solid #8299ac;
     outline-offset: 2px;
+  }
+
+  /* 极简：默认不给任何元素加阴影 */
+  * {
+    box-shadow: none;
   }
 }
 
 /* 细滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #31353b transparent;
+  scrollbar-color: #2a2d31 transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #31353b;
-  border-radius: 6px;
+  background: #2a2d31;
+  border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #4a4f56;
+  background: #3d4145;
 }
 
 *::-webkit-scrollbar-track {
@@ -123,10 +126,10 @@
     opacity: 1;
   }
   50% {
-    opacity: 0.45;
+    opacity: 0.5;
   }
 }
 
 .animate-soft-pulse {
-  animation: pulse-ring 1.8s ease-in-out infinite;
+  animation: pulse-ring 2s ease-in-out infinite;
 }

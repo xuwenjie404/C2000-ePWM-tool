@@ -1,5 +1,5 @@
 import { CLKDIV_OPTIONS, HSPCLKDIV_OPTIONS, TBPRD_MAX, TBPRD_MIN } from '../data/clock';
-import type { CountMode, TimeBaseSolution } from '../types';
+import type { BilingualText, CountMode, TimeBaseSolution } from '../types';
 
 interface DividerCombo {
   clkDiv: number;
@@ -36,7 +36,7 @@ export function computeTimeBase(
   targetFswKhz: number,
   countMode: CountMode,
 ): TimeBaseSolution {
-  const warnings: string[] = [];
+  const warnings: BilingualText[] = [];
   const tbclkHz = Math.max(1e3, tbclkMHz * 1e6);
   const fswHz = Math.max(1, Math.min(5e6, targetFswKhz * 1e3));
 
@@ -68,24 +68,28 @@ export function computeTimeBase(
   else if (rawTbprd < TBPRD_MIN) clamped = 'min';
 
   if (clamped === 'max') {
-    warnings.push(
-      `目标 ${targetFswKhz} kHz 过低，TBPRD 已钳位到 ${TBPRD_MAX}（该配置下最低可达频率受限）。`,
-    );
+    warnings.push({
+      zh: `目标 ${targetFswKhz} kHz 过低，TBPRD 已钳位到 ${TBPRD_MAX}（该配置下最低可达频率受限）。`,
+      en: `Target ${targetFswKhz} kHz is too low; TBPRD clamped to ${TBPRD_MAX} — the lowest achievable frequency is limited.`,
+    });
   }
   if (clamped === 'min') {
-    warnings.push(
-      `目标 ${targetFswKhz} kHz 超出 ${tbclkMHz} MHz TBCLK 的能力上限，TBPRD 钳位到 ${TBPRD_MIN}，实际频率为 ${actualFswKhz.toFixed(1)} kHz。`,
-    );
+    warnings.push({
+      zh: `目标 ${targetFswKhz} kHz 超出 ${tbclkMHz} MHz TBCLK 的能力上限，TBPRD 钳位到 ${TBPRD_MIN}，实际频率为 ${actualFswKhz.toFixed(1)} kHz。`,
+      en: `Target ${targetFswKhz} kHz exceeds what a ${tbclkMHz} MHz TBCLK can reach; TBPRD clamped to ${TBPRD_MIN}, actual frequency ${actualFswKhz.toFixed(1)} kHz.`,
+    });
   }
   if (tbprd < 25 && clamped === 'none') {
-    warnings.push(
-      `TBPRD 仅 ${tbprd}，占空比分辨率约 ${(100 / Math.max(1, tbprd)).toFixed(2)}%/LSB，建议降低 f_sw 或改用 HRPWM。`,
-    );
+    warnings.push({
+      zh: `TBPRD 仅 ${tbprd}，占空比分辨率约 ${(100 / Math.max(1, tbprd)).toFixed(2)}%/LSB，建议降低 f_sw 或改用 HRPWM。`,
+      en: `TBPRD is only ${tbprd}: duty resolution about ${(100 / Math.max(1, tbprd)).toFixed(2)}%/LSB. Lower f_sw or enable HRPWM.`,
+    });
   }
   if (freqErrorPct > 0.5 && clamped === 'none') {
-    warnings.push(
-      `TBPRD 取整导致实际频率 ${actualFswKhz.toFixed(3)} kHz 与目标偏差 ${freqErrorPct.toFixed(2)}%。`,
-    );
+    warnings.push({
+      zh: `TBPRD 取整导致实际频率 ${actualFswKhz.toFixed(3)} kHz 与目标偏差 ${freqErrorPct.toFixed(2)}%。`,
+      en: `TBPRD rounding puts the actual frequency at ${actualFswKhz.toFixed(3)} kHz, ${freqErrorPct.toFixed(2)}% off target.`,
+    });
   }
 
   return {

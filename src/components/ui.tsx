@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { isOutOfRange, parseNumericInput } from '../lib/numberInput';
+import { useI18n } from '../i18n';
 import { Icon, type IconName } from './Icon';
 
 export function cx(...parts: (string | false | null | undefined)[]): string {
@@ -13,12 +14,7 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section
-      className={cx(
-        'bg-[#141619] border border-slate-800 rounded-2xl shadow-xl shadow-black/30',
-        className,
-      )}
-    >
+    <section className={cx('rounded-lg border border-slate-800 bg-[#101113]', className)}>
       {children}
     </section>
   );
@@ -36,14 +32,14 @@ export function PanelHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-800 px-5 py-3.5">
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-800 px-5 py-3">
       <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 text-sky-400">
-          <Icon name={icon} size={20} />
+        <span className="mt-0.5 text-slate-500">
+          <Icon name={icon} size={18} />
         </span>
         <div>
-          <h2 className="text-[17px] font-bold leading-tight text-white">{title}</h2>
-          {hint && <p className="mt-1 text-base leading-snug text-slate-400">{hint}</p>}
+          <h2 className="text-[17px] font-semibold leading-tight text-white">{title}</h2>
+          {hint && <p className="mt-1 text-base leading-snug text-slate-500">{hint}</p>}
         </div>
       </div>
       {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
@@ -58,12 +54,12 @@ export function PanelHeader({
 type Variant = 'primary' | 'accent' | 'warn' | 'ghost' | 'danger' | 'violet';
 
 const VARIANT_CLASS: Record<Variant, string> = {
-  primary: 'bg-sky-500 text-slate-950 hover:bg-sky-400 border-transparent font-bold',
-  accent: 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 border-transparent font-bold',
-  warn: 'bg-amber-500 text-slate-950 hover:bg-amber-400 border-transparent font-bold',
-  violet: 'bg-violet-500 text-white hover:bg-violet-400 border-transparent font-bold',
-  ghost: 'bg-slate-900 text-slate-200 hover:bg-slate-800 border-slate-700',
-  danger: 'bg-rose-600 text-white hover:bg-rose-500 border-transparent font-bold',
+  primary: 'border-slate-200 bg-slate-200 text-slate-900 hover:bg-white hover:border-white font-semibold',
+  accent: 'border-slate-200 bg-slate-200 text-slate-900 hover:bg-white hover:border-white font-semibold',
+  warn: 'border-amber-600/60 bg-transparent text-amber-300 hover:border-amber-500 hover:text-amber-200',
+  violet: 'border-slate-700 bg-transparent text-slate-200 hover:border-slate-500 hover:text-white',
+  ghost: 'border-slate-800 bg-transparent text-slate-300 hover:border-slate-600 hover:text-white',
+  danger: 'border-rose-700/60 bg-transparent text-rose-300 hover:border-rose-500 hover:text-rose-200',
 };
 
 interface BtnProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -86,11 +82,11 @@ export function Btn({
     <button
       type="button"
       className={cx(
-        'inline-flex items-center justify-center gap-1.5 rounded-xl border transition-colors',
-        'disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-slate-900 disabled:text-slate-600',
+        'inline-flex items-center justify-center gap-1.5 rounded-md border transition-colors',
+        'disabled:cursor-not-allowed disabled:border-slate-800 disabled:bg-transparent disabled:text-slate-600',
         compact ? 'px-2.5 py-1.5 text-base' : 'px-3.5 py-2 text-base',
         VARIANT_CLASS[variant],
-        active && 'ring-2 ring-sky-300/70 ring-offset-1 ring-offset-[#141619]',
+        active && 'ring-1 ring-sky-400/60 ring-offset-1 ring-offset-[#101113]',
         className,
       )}
       {...rest}
@@ -108,12 +104,12 @@ export function Btn({
 type Tone = 'sky' | 'emerald' | 'amber' | 'rose' | 'violet' | 'slate';
 
 const TONE_CLASS: Record<Tone, string> = {
-  sky: 'bg-sky-500/15 text-sky-300 border-sky-500/40',
-  emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
-  amber: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
-  rose: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
-  violet: 'bg-violet-500/15 text-violet-300 border-violet-500/40',
-  slate: 'bg-slate-800/80 text-slate-300 border-slate-700',
+  sky: 'border-slate-800 text-slate-300',
+  emerald: 'border-slate-800 text-emerald-300',
+  amber: 'border-slate-800 text-amber-300',
+  rose: 'border-slate-800 text-rose-300',
+  violet: 'border-slate-800 text-violet-300',
+  slate: 'border-slate-800 text-slate-400',
 };
 
 export function Badge({
@@ -157,15 +153,16 @@ export function Segmented<T extends string>({
   tone?: Tone;
 }) {
   const activeClass: Record<Tone, string> = {
-    sky: 'bg-sky-500 text-slate-950',
-    emerald: 'bg-emerald-500 text-slate-950',
-    amber: 'bg-amber-500 text-slate-950',
-    rose: 'bg-rose-500 text-white',
-    violet: 'bg-violet-500 text-white',
+    // 极简：选中态只用明度差，不加彩色底
+    sky: 'bg-slate-200 text-slate-900',
+    emerald: 'bg-slate-200 text-slate-900',
+    amber: 'bg-slate-200 text-slate-900',
+    rose: 'bg-slate-200 text-slate-900',
+    violet: 'bg-slate-200 text-slate-900',
     slate: 'bg-slate-200 text-slate-900',
   };
   return (
-    <div className="inline-flex flex-wrap gap-1.5 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-md border border-slate-800 p-0.5">
       {options.map(o => (
         <button
           key={o.value}
@@ -173,10 +170,8 @@ export function Segmented<T extends string>({
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cx(
-            'rounded-lg px-3 py-1.5 text-base font-semibold transition-colors',
-            value === o.value
-              ? activeClass[tone]
-              : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+            'rounded px-3 py-1.5 text-base font-medium transition-colors',
+            value === o.value ? activeClass[tone] : 'text-slate-400 hover:text-white',
           )}
         >
           {o.label}
@@ -286,6 +281,7 @@ export function Slider({
   /** 对数刻度：适合频率这类跨数量级的参数 */
   log?: boolean;
 }) {
+  const { t } = useI18n();
   const { draft, setDraft, commit, outOfRange } = useNumberDraft(value, { min, max, step, onChange });
   const rangeText = `${fmtNum(min)} ~ ${fmtNum(max)}${unit ? ` ${unit}` : ''}`;
 
@@ -315,7 +311,7 @@ export function Slider({
             max={max}
             step={step}
             disabled={disabled}
-            aria-label={`${label}（数值输入）`}
+            aria-label={t(`${label}（数值输入）`, `${label} (numeric input)`)}
             aria-invalid={outOfRange}
             onFocus={e => {
               setDraft(String(value));
@@ -350,9 +346,11 @@ export function Slider({
 
       <p className="mt-0.5 min-h-5 text-base leading-5">
         {outOfRange ? (
-          <span className="text-rose-400">超出范围，允许 {rangeText}（回车后自动夹紧）</span>
+          <span className="text-rose-400">
+            {t(`超出范围，允许 ${rangeText}（回车后自动夹紧）`, `Out of range, allowed ${rangeText} (clamped on Enter)`)}
+          </span>
         ) : (
-          <span className="text-slate-500">{hint ?? `范围 ${rangeText}`}</span>
+          <span className="text-slate-500">{hint ?? t(`范围 ${rangeText}`, `Range ${rangeText}`)}</span>
         )}
       </p>
     </div>
@@ -386,6 +384,7 @@ export function NumberBadge({
   onChange: (v: number) => void;
   title?: string;
 }) {
+  const { t } = useI18n();
   const { draft, setDraft, commit, outOfRange } = useNumberDraft(value, { min, max, step, onChange });
 
   return (
@@ -404,7 +403,7 @@ export function NumberBadge({
         min={min}
         max={max}
         step={step}
-        aria-label={`${label}（数值输入）`}
+        aria-label={t(`${label}（数值输入）`, `${label} (numeric input)`)}
         aria-invalid={outOfRange}
         onFocus={e => {
           setDraft(String(value));
@@ -466,7 +465,7 @@ export function Select<T extends string | number>({
       value={value}
       onChange={e => onChange(e.target.value)}
       className={cx(
-        'w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-base font-semibold text-white',
+        'w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-base font-semibold text-white',
         className,
       )}
     >

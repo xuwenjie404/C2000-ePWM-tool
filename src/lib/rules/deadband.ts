@@ -14,7 +14,7 @@ import { NARROW_PULSE_NS } from './types';
 export const deadbandOverflow: ValidationRule = {
   id: 'deadband.overflow',
   scope: 'deadband',
-  run({ hw }) {
+  run({ hw, t }) {
     const issues: DiagnosticIssue[] = [];
     const { dbMaxBits, dbMaxCount } = hw.device;
 
@@ -26,8 +26,11 @@ export const deadbandOverflow: ValidationRule = {
         issues.push({
           id: `dbred-overflow-${id}`,
           severity: 'warn',
-          title: `ePWM${id} DBRED 溢出`,
-          detail: `RED = ${ch.cfg.redNs} ns 需要 ${ch.rawDbRed.toFixed(0)} 个计数，超过 ${dbMaxBits}-bit 上限 ${dbMaxCount}，已钳位为 ${ch.dbRed}（实际 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns）。`,
+          title: t(`ePWM${id} DBRED 溢出`, `ePWM${id} DBRED overflow`),
+          detail: t(
+            `RED = ${ch.cfg.redNs} ns 需要 ${ch.rawDbRed.toFixed(0)} 个计数，超过 ${dbMaxBits}-bit 上限 ${dbMaxCount}，已钳位为 ${ch.dbRed}（实际 ${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns）。`,
+            `RED = ${ch.cfg.redNs} ns needs ${ch.rawDbRed.toFixed(0)} counts, above the ${dbMaxBits}-bit limit of ${dbMaxCount}; clamped to ${ch.dbRed} (${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns actual).`,
+          ),
           channelId: id,
         });
       }
@@ -35,8 +38,11 @@ export const deadbandOverflow: ValidationRule = {
         issues.push({
           id: `dbfed-overflow-${id}`,
           severity: 'warn',
-          title: `ePWM${id} DBFED 溢出`,
-          detail: `FED = ${ch.cfg.fedNs} ns 需要 ${ch.rawDbFed.toFixed(0)} 个计数，超过 ${dbMaxBits}-bit 上限 ${dbMaxCount}，已钳位为 ${ch.dbFed}（实际 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns）。`,
+          title: t(`ePWM${id} DBFED 溢出`, `ePWM${id} DBFED overflow`),
+          detail: t(
+            `FED = ${ch.cfg.fedNs} ns 需要 ${ch.rawDbFed.toFixed(0)} 个计数，超过 ${dbMaxBits}-bit 上限 ${dbMaxCount}，已钳位为 ${ch.dbFed}（实际 ${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns）。`,
+            `FED = ${ch.cfg.fedNs} ns needs ${ch.rawDbFed.toFixed(0)} counts, above the ${dbMaxBits}-bit limit of ${dbMaxCount}; clamped to ${ch.dbFed} (${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns actual).`,
+          ),
           channelId: id,
         });
       }
@@ -48,7 +54,7 @@ export const deadbandOverflow: ValidationRule = {
 export const deadbandPulseSwallowed: ValidationRule = {
   id: 'deadband.pulse-swallowed',
   scope: 'deadband',
-  run({ hw }) {
+  run({ hw, t }) {
     const issues: DiagnosticIssue[] = [];
     for (const ch of hw.channels) {
       if (!ch.cfg.enabled || ch.mode.bypass) continue;
@@ -60,8 +66,11 @@ export const deadbandPulseSwallowed: ValidationRule = {
         issues.push({
           id: `db-swallow-a-${id}`,
           severity: 'error',
-          title: `ePWM${id} A 相脉宽被死区吞掉`,
-          detail: `原始高电平 ${highNs.toFixed(0)} ns，RED(${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns) 已不小于原始高电平，死区后 A 相将恒定为低电平 —— 桥臂实际失去驱动。请减小 RED 或提高占空比。`,
+          title: t(`ePWM${id} A 相脉宽被死区吞掉`, `ePWM${id} phase A pulse swallowed by dead-band`),
+          detail: t(
+            `原始高电平 ${highNs.toFixed(0)} ns，RED(${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns) 已不小于原始高电平，死区后 A 相将恒定为低电平 —— 桥臂实际失去驱动。请减小 RED 或提高占空比。`,
+            `Raw high level ${highNs.toFixed(0)} ns, RED (${(ch.dbRed * ch.tb.stepNs).toFixed(0)} ns) is no longer below it, so phase A stays low after the dead-band — the leg loses drive. Reduce RED or raise the duty cycle.`,
+          ),
           channelId: id,
         });
       }
@@ -69,8 +78,11 @@ export const deadbandPulseSwallowed: ValidationRule = {
         issues.push({
           id: `db-swallow-b-${id}`,
           severity: 'error',
-          title: `ePWM${id} B 相脉宽被死区吞掉`,
-          detail: `原始低电平 ${lowNs.toFixed(0)} ns，FED(${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns) 已不小于原始低电平，死区后 B 相将恒定为低电平。请减小 FED 或降低占空比。`,
+          title: t(`ePWM${id} B 相脉宽被死区吞掉`, `ePWM${id} phase B pulse swallowed by dead-band`),
+          detail: t(
+            `原始低电平 ${lowNs.toFixed(0)} ns，FED(${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns) 已不小于原始低电平，死区后 B 相将恒定为低电平。请减小 FED 或降低占空比。`,
+            `Raw low level ${lowNs.toFixed(0)} ns, FED (${(ch.dbFed * ch.tb.stepNs).toFixed(0)} ns) is no longer below it, so phase B stays low after the dead-band. Reduce FED or lower the duty cycle.`,
+          ),
           channelId: id,
         });
       }
@@ -82,7 +94,7 @@ export const deadbandPulseSwallowed: ValidationRule = {
 export const deadbandNarrowPulse: ValidationRule = {
   id: 'deadband.narrow-pulse',
   scope: 'deadband',
-  run({ hw }) {
+  run({ hw, t }) {
     const issues: DiagnosticIssue[] = [];
     for (const ch of hw.channels) {
       if (!ch.cfg.enabled || ch.mode.bypass) continue;
@@ -93,8 +105,11 @@ export const deadbandNarrowPulse: ValidationRule = {
         issues.push({
           id: `db-narrow-a-${id}`,
           severity: 'warn',
-          title: `ePWM${id} A 相剩余脉宽过窄`,
-          detail: `死区后 A 相高电平仅 ${remainNs.toFixed(0)} ns，低于 ${NARROW_PULSE_NS} ns，栅极驱动器与电流采样可能无法识别。`,
+          title: t(`ePWM${id} A 相剩余脉宽过窄`, `ePWM${id} phase A remaining pulse too narrow`),
+          detail: t(
+            `死区后 A 相高电平仅 ${remainNs.toFixed(0)} ns，低于 ${NARROW_PULSE_NS} ns，栅极驱动器与电流采样可能无法识别。`,
+            `After the dead-band, phase A stays high for only ${remainNs.toFixed(0)} ns, below ${NARROW_PULSE_NS} ns; the gate driver and current sampling may not resolve it.`,
+          ),
           channelId: id,
         });
       }
@@ -107,7 +122,7 @@ export const deadbandNarrowPulse: ValidationRule = {
 export const deadbandAsymmetry: ValidationRule = {
   id: 'deadband.asymmetry',
   scope: 'deadband',
-  run({ hw }) {
+  run({ hw, t }) {
     const issues: DiagnosticIssue[] = [];
     for (const ch of hw.channels) {
       if (!ch.cfg.enabled || ch.mode.bypass || ch.cfg.lockDb) continue;
@@ -119,8 +134,11 @@ export const deadbandAsymmetry: ValidationRule = {
         issues.push({
           id: `db-asymmetry-${ch.cfg.id}`,
           severity: 'info',
-          title: `ePWM${ch.cfg.id} 两侧死区差异较大`,
-          detail: `RED=${redNs.toFixed(0)} ns，FED=${fedNs.toFixed(0)} ns。不对称死区会给输出电压引入直流偏置；若非有意为之，建议开启「RED = FED 锁定」。`,
+          title: t(`ePWM${ch.cfg.id} 两侧死区差异较大`, `ePWM${ch.cfg.id} dead-band mismatch between edges`),
+          detail: t(
+            `RED=${redNs.toFixed(0)} ns，FED=${fedNs.toFixed(0)} ns。不对称死区会给输出电压引入直流偏置；若非有意为之，建议开启「RED = FED 锁定」。`,
+            `RED=${redNs.toFixed(0)} ns, FED=${fedNs.toFixed(0)} ns. Asymmetric dead-band adds a DC offset to the output voltage; unless intentional, enable "RED = FED lock".`,
+          ),
           channelId: ch.cfg.id,
         });
       }

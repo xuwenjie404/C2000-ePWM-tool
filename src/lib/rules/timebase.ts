@@ -10,7 +10,7 @@ import type { ValidationRule } from './types';
 export const timebaseReachability: ValidationRule = {
   id: 'timebase.reachability',
   scope: 'timebase',
-  run({ hw }) {
+  run({ hw, t }) {
     const issues: DiagnosticIssue[] = [];
     for (const ch of hw.channels) {
       if (!ch.cfg.enabled) continue;
@@ -18,8 +18,11 @@ export const timebaseReachability: ValidationRule = {
         issues.push({
           id: `tb-${ch.cfg.id}`,
           severity: ch.tb.clamped === 'none' ? 'info' : 'error',
-          title: `ePWM${ch.cfg.id} 时基：${ch.tb.clamped === 'none' ? '精度提示' : '目标频率不可达'}`,
-          detail: warning,
+          title: t(
+            `ePWM${ch.cfg.id} 时基：${ch.tb.clamped === 'none' ? '精度提示' : '目标频率不可达'}`,
+            `ePWM${ch.cfg.id} time base: ${ch.tb.clamped === 'none' ? 'precision note' : 'target frequency unreachable'}`,
+          ),
+          detail: t(warning.zh, warning.en),
           channelId: ch.cfg.id,
         });
       }
@@ -31,7 +34,7 @@ export const timebaseReachability: ValidationRule = {
 export const timebaseResolution: ValidationRule = {
   id: 'timebase.resolution',
   scope: 'timebase',
-  run({ hw }) {
+  run({ hw, t }) {
     const issues: DiagnosticIssue[] = [];
     for (const ch of hw.channels) {
       if (!ch.cfg.enabled) continue;
@@ -42,8 +45,14 @@ export const timebaseResolution: ValidationRule = {
         issues.push({
           id: `resolution-${ch.cfg.id}`,
           severity: 'info',
-          title: `ePWM${ch.cfg.id} 占空比量化误差约 ${quantErr.toFixed(2)}%`,
-          detail: `TBPRD=${tb.tbprd}，一个 TBCLK 对应 ${tb.stepNs.toFixed(2)} ns。开启 HRPWM 可把时间分辨率提升到 MEP 级别。`,
+          title: t(
+            `ePWM${ch.cfg.id} 占空比量化误差约 ${quantErr.toFixed(2)}%`,
+            `ePWM${ch.cfg.id} duty cycle quantization error is about ${quantErr.toFixed(2)}%`,
+          ),
+          detail: t(
+            `TBPRD=${tb.tbprd}，一个 TBCLK 对应 ${tb.stepNs.toFixed(2)} ns。开启 HRPWM 可把时间分辨率提升到 MEP 级别。`,
+            `TBPRD=${tb.tbprd}, one TBCLK is ${tb.stepNs.toFixed(2)} ns. Enable HRPWM to raise timing resolution to MEP level.`,
+          ),
           channelId: ch.cfg.id,
         });
       }
@@ -55,7 +64,7 @@ export const timebaseResolution: ValidationRule = {
 export const timebaseLowFrequency: ValidationRule = {
   id: 'timebase.low-frequency',
   scope: 'timebase',
-  run({ hw }) {
+  run({ hw, t }) {
     const master = hw.master;
     if (!master) return [];
     if (master.tb.periodTicks > 60000) {
@@ -63,8 +72,14 @@ export const timebaseLowFrequency: ValidationRule = {
         {
           id: 'low-fsw',
           severity: 'info',
-          title: `开关周期 ${(master.tb.periodNs / 1000).toFixed(1)} µs 接近计数上限`,
-          detail: `TBPRD=${master.tb.tbprd} 已接近 65535，继续降低频率需要增大 CLKDIV/HSPCLKDIV。`,
+          title: t(
+            `开关周期 ${(master.tb.periodNs / 1000).toFixed(1)} µs 接近计数上限`,
+            `Switching period ${(master.tb.periodNs / 1000).toFixed(1)} µs is near the counter limit`,
+          ),
+          detail: t(
+            `TBPRD=${master.tb.tbprd} 已接近 65535，继续降低频率需要增大 CLKDIV/HSPCLKDIV。`,
+            `TBPRD=${master.tb.tbprd} is close to 65535; lowering the frequency further requires a larger CLKDIV/HSPCLKDIV.`,
+          ),
         },
       ];
     }

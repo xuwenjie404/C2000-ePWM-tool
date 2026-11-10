@@ -19,6 +19,7 @@ import { resolveHardware } from './lib/hardware';
 import { validateProject } from './lib/validation';
 import { generateCode, generateSingleFile } from './lib/targets';
 import { computeModulationInstant } from './lib/modulation';
+import { I18nProvider, useI18n, type UiLang } from './i18n';
 import {
   MAX_CHANNELS,
   applyPreset,
@@ -34,7 +35,7 @@ import { copyText, downloadJson, downloadText, readTextFile } from './lib/io';
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
-export default function App() {
+function AppShell() {
   const [project, setProject] = useState<ProjectState>(() => {
     return readProjectFromLocation() ?? loadProjectFromStorage() ?? createDefaultProject();
   });
@@ -44,10 +45,11 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const { t, lang } = useI18n();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hw = useMemo(() => resolveHardware(project), [project]);
-  const issues = useMemo(() => validateProject(project, hw), [project, hw]);
+  const issues = useMemo(() => validateProject(project, hw, lang), [project, hw, lang]);
   const files = useMemo(() => generateCode(project, hw), [project, hw]);
   const lineCount = useMemo(() => files.reduce((n, f) => n + f.content.split('\n').length, 0), [files]);
 
@@ -209,7 +211,7 @@ export default function App() {
     setProject(prev => applyPreset(prev, id));
     setPlaying(false);
     setActiveChannelId(1);
-    setNotice('已装载预设');
+    setNotice(t('已装载预设', 'Preset loaded'));
   }, []);
 
   const handleImportFile = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
@@ -219,9 +221,9 @@ export default function App() {
       const text = await readTextFile(file);
       const parsed = sanitizeProject(JSON.parse(text));
       setProject(parsed);
-      setNotice('配置已导入');
+      setNotice(t('配置已导入', 'Configuration imported'));
     } catch {
-      setNotice('导入失败：不是合法的工程 JSON');
+      setNotice(t('导入失败：不是合法的工程 JSON', 'Import failed: not a valid project JSON'));
     } finally {
       e.target.value = '';
     }
@@ -230,12 +232,12 @@ export default function App() {
   const handleExportJson = useCallback(() => {
     const name = `c2000-epwm_${project.deviceId}_${project.subTopology}.json`;
     downloadJson(name, project);
-    setNotice('已导出 ' + name);
+    setNotice(t('已导出 ', 'Exported ') + name);
   }, [project]);
 
   const handleShare = useCallback(async () => {
     const ok = await copyText(buildShareUrl(project));
-    setNotice(ok ? '分享链接已复制到剪贴板' : '复制失败，请手动复制地址栏 URL');
+    setNotice(ok ? t('分享链接已复制到剪贴板', 'Share link copied') : t('复制失败，请手动复制地址栏 URL', 'Copy failed, copy the URL manually'));
   }, [project]);
 
   const handleReset = useCallback(() => {
@@ -244,7 +246,7 @@ export default function App() {
     if (typeof window !== 'undefined' && window.location.hash) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
-    setNotice('已恢复默认工程');
+    setNotice(t('已恢复默认工程', 'Reset to default project'));
   }, []);
 
   const handleCopyCode = useCallback(async () => {
@@ -252,7 +254,7 @@ export default function App() {
     if (!active) return;
     const ok = await copyText(active.content);
     setCopied(ok);
-    setNotice(ok ? `已复制 ${active.name}` : '复制失败');
+    setNotice(ok ? t(`已复制 ${active.name}`, `Copied ${active.name}`) : t('复制失败', 'Copy failed'));
     setTimeout(() => setCopied(false), 1800);
   }, [files, activeFileName]);
 
@@ -266,10 +268,10 @@ export default function App() {
 
   const handleDownloadAll = useCallback(() => {
     downloadText(`c2000-epwm_${project.deviceId}_all.c`, generateSingleFile(project, hw));
-    setNotice('已下载合并源码');
+    setNotice(t('已下载合并源码', 'Merged source downloaded'));
   }, [project, hw]);
 
-  const protection = protectionSummary(project);
+  const protection = protectionSummary(project, lang);
 
   return (
     <div className="min-h-screen bg-[#0a0b0d] text-slate-100">
@@ -291,7 +293,7 @@ export default function App() {
 
       {notice && (
         <div className="pointer-events-none fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
-          <div className="flex items-center gap-2 rounded-xl border border-sky-500/50 bg-slate-900/95 px-4 py-2 text-base font-semibold text-sky-100 shadow-xl">
+          <div className="flex items-center gap-2 rounded-md border border-slate-700 bg-[#141517] px-4 py-2 text-base font-medium text-slate-200">
             <Icon name="info" size={16} />
             {notice}
           </div>
@@ -366,16 +368,28 @@ export default function App() {
               schema v{project.schemaVersion}
             </Badge>
             <Badge tone={issues.some(i => i.severity === 'error') ? 'rose' : 'emerald'}>
-              {issues.some(i => i.severity === 'error') ? '存在错误，请先修正' : '校验通过'}
+              {issues.some(i => i.severity === 'error') ? t('存在错误，请先修正', 'Errors found — fix them first') : t('校验通过', 'Checks passed')}
             </Badge>
-            <span>工程自动保存在本地浏览器</span>
+            <span>{t('工程自动保存在本地浏览器', 'Project saved in this browser')}</span>
           </div>
           <p>
-            生成的代码仅供参考 —— 上电前请用示波器确认死区与最小脉宽。开源工程：
+            {t(
+              '生成的代码仅供参考 —— 上电前请用示波器确认死区与最小脉宽。开源工程：',
+              'Generated code is a starting point — verify dead-band and minimum pulse width on hardware. Open source: ',
+            )}
             <span className="font-mono text-slate-400">C2000-ePWM-tool</span>
           </p>
         </div>
       </footer>
     </div>
+  );
+}
+
+/** 语言 Provider 只负责注入上下文，界面本体在 AppShell 里 */
+export default function App({ defaultLang }: { defaultLang?: UiLang } = {}) {
+  return (
+    <I18nProvider defaultLang={defaultLang}>
+      <AppShell />
+    </I18nProvider>
   );
 }

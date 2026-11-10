@@ -7,6 +7,12 @@ export interface RuleContext {
   project: ProjectState;
   hw: HardwareModel;
   pins: ReturnType<typeof resolvePins>;
+  /**
+   * 文案选择器：`t('中文', 'English')`。
+   * 诊断信息在规则里就完成本地化，UI 直接渲染 title/detail，
+   * 不需要再维护一张「issue id → 翻译」的映射表。
+   */
+  t: (zh: string, en: string) => string;
 }
 
 /**

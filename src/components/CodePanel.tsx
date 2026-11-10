@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { CodeTarget, GeneratedFile } from '../types';
 import { codegenRegistry } from '../lib/targets';
+import { useI18n } from '../i18n';
 import { Badge, Btn, Card, Segmented, cx } from './ui';
 import { Icon } from './Icon';
 
@@ -93,6 +94,7 @@ export function CodePanel({
   copied,
   lineCount,
 }: Props) {
+  const { t } = useI18n();
   const active = files.find(f => f.name === activeName) ?? files[0];
   const lines = useMemo(() => (active?.content ?? '').split('\n'), [active]);
   const targets = codegenRegistry.list();
@@ -106,14 +108,14 @@ export function CodePanel({
             <span className="text-sky-400">
               <Icon name="code" size={20} />
             </span>
-            <h2 className="text-[17px] font-bold text-white">C 代码生成</h2>
+            <h2 className="text-[17px] font-bold text-white">{t('C 代码生成', 'C code generation')}</h2>
             <Badge tone="slate" mono>
-              {lineCount} 行
+              {t(`${lineCount} 行`, `${lineCount} lines`)}
             </Badge>
           </div>
           <div className="flex items-center gap-1.5">
             <Btn compact variant="ghost" onClick={onLang} icon="link">
-              {lang === 'CN' ? '中文注释' : 'English'}
+              {lang === 'CN' ? t('中文注释', 'Chinese comments') : 'English'}
             </Btn>
           </div>
         </div>
@@ -123,7 +125,7 @@ export function CodePanel({
             tone="violet"
             value={target}
             onChange={v => onTarget(v)}
-            options={targets.map(t => ({ value: t.id, label: t.label, title: t.description }))}
+            options={targets.map(tg => ({ value: tg.id, label: t(tg.label, tg.labelEn), title: t(tg.description, tg.descriptionEn) }))}
           />
         </div>
 
@@ -145,13 +147,13 @@ export function CodePanel({
           ))}
           <div className="ml-auto flex items-center gap-1.5">
             <Btn compact variant="ghost" icon={copied ? 'check' : 'copy'} onClick={onCopy}>
-              {copied ? '已复制' : '复制'}
+              {copied ? t('已复制', 'Copied') : t('复制', 'Copy')}
             </Btn>
             <Btn compact variant="ghost" icon="download" onClick={() => active && onDownloadFile(active.name)}>
-              单个
+              {t('单个', 'Single file')}
             </Btn>
             <Btn compact variant="accent" icon="download" onClick={onDownloadAll}>
-              全部 .c/.h
+              {t('全部 .c/.h', 'All .c/.h')}
             </Btn>
           </div>
         </div>

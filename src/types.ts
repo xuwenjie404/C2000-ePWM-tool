@@ -119,6 +119,12 @@ export interface ProjectState {
   commentLang: CommentLang;
 }
 
+/** 中英双语文本。库层产生、UI 层按当前语言选取 */
+export interface BilingualText {
+  zh: string;
+  en: string;
+}
+
 /** 求解后的时基参数 */
 export interface TimeBaseSolution {
   clkDiv: number;
@@ -141,7 +147,7 @@ export interface TimeBaseSolution {
   dutyLsbPct: number;
   /** TBPRD 已被钳位（目标频率无法精确实现） */
   clamped: 'none' | 'max' | 'min';
-  warnings: string[];
+  warnings: BilingualText[];
 }
 
 export interface Interval {

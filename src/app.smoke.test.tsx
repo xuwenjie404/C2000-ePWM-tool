@@ -34,4 +34,17 @@ describe('App 冒烟渲染', () => {
     expect(html).not.toContain('Infinity');
     expect(html).not.toContain('undefined');
   });
+
+  it('英文模式渲染出英文界面（i18n 链路打通）', () => {
+    const html = renderToString(<App defaultLang="en" />);
+
+    expect(html).toContain('Topology');
+    expect(html).toContain('Switching frequency');
+    expect(html).toContain('Count mode');
+    expect(html).toContain('Checks passed');
+    // 中文界面不该出现英文标题
+    const zh = renderToString(<App defaultLang="zh" />);
+    expect(zh).toContain('开关频率');
+    expect(zh).not.toContain('Switching frequency');
+  });
 });

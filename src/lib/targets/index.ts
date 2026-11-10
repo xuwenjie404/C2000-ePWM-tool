@@ -14,8 +14,12 @@ import { produceMarkdown } from './markdown';
 export interface CodegenTarget {
   id: CodeTarget;
   label: string;
+  /** 英文标签（UI 语言为 en 时使用） */
+  labelEn: string;
   /** 用于 UI 提示 */
   description: string;
+  /** 英文说明 */
+  descriptionEn: string;
   /** 产物默认语言，决定代码面板的高亮方案 */
   language: 'c' | 'markdown';
   produce(project: ProjectState, hw: HardwareModel): GeneratedFile[];
@@ -23,11 +27,19 @@ export interface CodegenTarget {
 
 export const codegenRegistry = createRegistry<CodegenTarget>('codegen');
 
-function cTarget(id: CCodeTarget, label: string, description: string): CodegenTarget {
+function cTarget(
+  id: CCodeTarget,
+  label: string,
+  labelEn: string,
+  description: string,
+  descriptionEn: string,
+): CodegenTarget {
   return {
     id,
     label,
+    labelEn,
     description,
+    descriptionEn,
     language: 'c',
     produce: (project, hw) => produceC(project, hw, id),
   };
@@ -38,20 +50,27 @@ codegenRegistry
     cTarget(
       'BITFIELD',
       'Bit-Field 寄存器',
+      'Bit-Field registers',
       '直接操作 EPwm1Regs.xxx 位域，配合 F28x_Project.h，最贴近寄存器手册。',
+      'Touches EPwm1Regs.xxx bit-fields directly with F28x_Project.h — closest to the TRM.',
     ),
   )
   .register(
     cTarget(
       'DRIVERLIB',
       'DriverLib 库函数',
+      'DriverLib API',
       '使用 EPWM_setXxx() 系列 API 配合 driverlib.h，可读性更好、跨器件移植性更强。',
+      'Uses EPWM_setXxx() APIs with driverlib.h — more readable and portable across devices.',
     ),
   )
   .register({
     id: 'MARKDOWN',
     label: 'Markdown 设计表',
+    labelEn: 'Markdown sheet',
     description: '把寄存器值、死区、引脚与校验结果导出成评审文档，适合归档与下厂。',
+    descriptionEn:
+      'Exports register values, dead-band, pinout and check results as a review document — good for archiving.',
     language: 'markdown',
     produce: produceMarkdown,
   });

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelConfig, Interval, ProjectState } from '../types';
 import type { HardwareModel, ResolvedChannel } from '../lib/hardware';
-import { computeModulationInstant, maxLinearModIndex } from '../lib/modulation';
+import { computeModulationInstant } from '../lib/modulation';
 import {
   defaultOriginTick,
   resolveWaveGeometry,
@@ -9,6 +9,7 @@ import {
   tickToCycleOffset,
   tickToPixel,
 } from '../lib/waveformGeometry';
+import { useI18n } from '../i18n';
 import { Badge, Btn, Card, NumberBadge, PanelHeader, cx } from './ui';
 import { Icon } from './Icon';
 
@@ -97,6 +98,7 @@ function ModulationEnvelope({
   project: ProjectState;
   onAngle: (deg: number) => void;
 }) {
+  const { t } = useI18n();
   const W = 780;
   const H = 150;
   const padL = 46;
@@ -145,11 +147,13 @@ function ModulationEnvelope({
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
+    <div className="rounded-md border border-slate-800 p-3.5">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-base font-bold text-white">
-            {project.modulationMode === 'SVPWM' ? 'SVPWM 马鞍波包络（零序注入）' : 'SPWM 正弦参考波'}
+            {project.modulationMode === 'SVPWM'
+              ? t('SVPWM 马鞍波包络（零序注入）', 'SVPWM saddle envelope (zero-sequence injection)')
+              : t('SPWM 正弦参考波', 'SPWM sinusoidal reference')}
           </span>
           <Badge tone="sky" mono>
             θ = {project.elecAngleDeg}°
@@ -166,7 +170,7 @@ function ModulationEnvelope({
             </Badge>
           )}
         </div>
-        <p className="text-base text-slate-500">在包络上点击或拖动可定位电角度</p>
+        <p className="text-base text-slate-500">{t('在包络上点击或拖动可定位电角度', 'Click or drag the envelope to set the electrical angle')}</p>
       </div>
 
       <svg
@@ -225,6 +229,7 @@ export function WaveformPanel({
   onPlayToggle,
   playing,
 }: Props) {
+  const { t } = useI18n();
   const [drag, setDrag] = useState<DragState | null>(null);
   const svgRefs = useRef<Record<number, SVGSVGElement | null>>({});
 
@@ -276,17 +281,20 @@ export function WaveformPanel({
     <Card>
       <PanelHeader
         icon="wave"
-        title="波形示波器 · 死区与移相交互调节"
-        hint="竖条都压在信号的真实跳变沿上，从左到右依次是 RED（琥珀）→ Duty（白）→ FED（橙），绿色圆点是移相；竖条可拖、徽标可输。增减计数下脉冲以 CTR=PRD 为中心绘制。"
+        title={t('波形示波器 · 死区与移相交互调节', 'Waveform scope · interactive dead-band & phase shift')}
+        hint={t(
+          '竖条都压在信号的真实跳变沿上，从左到右依次是 RED（琥珀）→ Duty（白）→ FED（橙），绿色圆点是移相；竖条可拖、徽标可输。增减计数下脉冲以 CTR=PRD 为中心绘制。',
+          'Every bar sits on a real signal edge — left to right: RED (amber) → Duty (white) → FED (orange); the green dot is the phase shift. Bars are draggable and badges accept typed values. In up-down count mode pulses are drawn around CTR=PRD.',
+        )}
         right={
           <>
             {project.modulationMode !== 'FIXED' && (
               <Btn variant={playing ? 'warn' : 'accent'} icon={playing ? 'pause' : 'play'} onClick={onPlayToggle}>
-                {playing ? '暂停扫描' : '扫描动画'}
+                {playing ? t('暂停扫描', 'Pause sweep') : t('扫描动画', 'Sweep animation')}
               </Btn>
             )}
             <Btn variant="primary" icon="plus" onClick={onAddChannel} disabled={project.channels.length >= 4}>
-              新增桥臂
+              {t('新增桥臂', 'Add leg')}
             </Btn>
           </>
         }
@@ -351,7 +359,7 @@ export function WaveformPanel({
               key={ch.cfg.id}
               onClick={() => onActiveChannel(ch.cfg.id)}
               className={cx(
-                'rounded-xl border bg-slate-950/80 p-3.5 transition-colors',
+                'rounded-md border bg-slate-950/80 p-3.5 transition-colors',
                 isActive ? 'border-sky-500/70' : 'border-slate-800 hover:border-slate-700',
               )}
             >
@@ -367,7 +375,7 @@ export function WaveformPanel({
                   <Badge tone="slate" mono>
                     {ch.tb.actualFswKhz.toFixed(3)} kHz
                   </Badge>
-                  <Badge tone="slate" mono title="周期寄存器值">
+                  <Badge tone="slate" mono title={t('周期寄存器值', 'Period register value')}>
                     TBPRD {ch.tb.tbprd}
                   </Badge>
                   <Badge tone={ch.wave.swallowedA || ch.wave.swallowedB ? 'rose' : 'slate'} mono>
@@ -390,7 +398,10 @@ export function WaveformPanel({
                     max={maxDbOf(ch)}
                     step={10}
                     decimals={0}
-                    title="上升沿死区（波形上最左侧的琥珀色竖条），可直接输入"
+                    title={t(
+                      '上升沿死区（波形上最左侧的琥珀色竖条），可直接输入',
+                      'Rising-edge dead-band (leftmost amber bar on the waveform) — type a value directly',
+                    )}
                     onChange={v => onChannelChange(ch.cfg.id, { redNs: v })}
                   />
                   <NumberBadge
@@ -402,7 +413,10 @@ export function WaveformPanel({
                     max={99.5}
                     step={0.1}
                     decimals={1}
-                    title="ePWMxA 占空比（中间的白色竖条），可直接输入"
+                    title={t(
+                      'ePWMxA 占空比（中间的白色竖条），可直接输入',
+                      'ePWMxA duty cycle (middle white bar) — type a value directly',
+                    )}
                     onChange={v => onChannelChange(ch.cfg.id, { duty: v })}
                   />
                   <NumberBadge
@@ -414,7 +428,10 @@ export function WaveformPanel({
                     max={maxDbOf(ch)}
                     step={10}
                     decimals={0}
-                    title="下降沿死区（紧跟在 Duty 之后的橙色竖条），可直接输入"
+                    title={t(
+                      '下降沿死区（紧跟在 Duty 之后的橙色竖条），可直接输入',
+                      'Falling-edge dead-band (orange bar right after Duty) — type a value directly',
+                    )}
                     onChange={v => onChannelChange(ch.cfg.id, { fedNs: v })}
                   />
                   {project.channels.length > 1 && ch.cfg.id !== 1 && (
@@ -425,7 +442,7 @@ export function WaveformPanel({
                         onRemoveChannel(ch.cfg.id);
                       }}
                       className="rounded-lg p-1 text-slate-500 transition-colors hover:bg-rose-500/15 hover:text-rose-300"
-                      title="删除该桥臂"
+                      title={t('删除该桥臂', 'Delete this leg')}
                     >
                       <Icon name="trash" size={16} />
                     </button>
@@ -510,7 +527,12 @@ export function WaveformPanel({
                       beginDrag(e, ch.cfg.id, 'phase', ch.cfg.phase, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
                     }
                   >
-                    <title>{`拖动设置移相角（当前 TBPHS = ${ch.phase.tbphs}）`}</title>
+                    <title>
+                      {t(
+                        `拖动设置移相角（当前 TBPHS = ${ch.phase.tbphs}）`,
+                        `Drag to set the phase shift (current TBPHS = ${ch.phase.tbphs})`,
+                      )}
+                    </title>
                     <line x1={phaseX} y1={26} x2={phaseX} y2={136} stroke="#34d399" strokeDasharray="3 5" strokeWidth="1.2" opacity="0.45" />
                     <rect x={phaseX - 10} y={26} width="20" height="110" fill="transparent" />
                     <circle cx={phaseX} cy={76} r="7" fill="#34d399" stroke="#0b1220" strokeWidth="2" />
@@ -524,7 +546,7 @@ export function WaveformPanel({
                       beginDrag(e, ch.cfg.id, 'red', ch.cfg.redNs, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
                     }
                   >
-                    <title>拖动设置上升沿死区 RED</title>
+                    <title>{t('拖动设置上升沿死区 RED', 'Drag to set the rising-edge dead-band RED')}</title>
                     <rect x={redX - 10} y={26} width="20" height="40" fill="transparent" />
                     <rect x={redX - 4} y={26} width="8" height="40" rx="3" fill="#f59e0b" stroke="#0b1220" strokeWidth="1.5" />
                     <text x={redLabel.x} y={22} textAnchor={redLabel.anchor} fill="#fcd34d" fontSize="15" fontWeight="700">
@@ -539,7 +561,7 @@ export function WaveformPanel({
                     beginDrag(e, ch.cfg.id, 'duty', ch.cfg.duty, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
                   }
                 >
-                  <title>拖动设置占空比</title>
+                  <title>{t('拖动设置占空比', 'Drag to set the duty cycle')}</title>
                   <rect x={dutyX - 10} y={26} width="20" height="40" fill="transparent" />
                   <rect x={dutyX - 4} y={26} width="8" height="40" rx="3" fill="#f8fafc" stroke="#0284c7" strokeWidth="2" />
                   <text x={dutyLabel.x} y={80} textAnchor={dutyLabel.anchor} fill="#e2e8f0" fontSize="15" fontWeight="700">
@@ -554,7 +576,7 @@ export function WaveformPanel({
                       beginDrag(e, ch.cfg.id, 'fed', ch.cfg.fedNs, cyclePx, ch.tb.periodNs, ch.tb.stepNs)
                     }
                   >
-                    <title>拖动设置下降沿死区 FED</title>
+                    <title>{t('拖动设置下降沿死区 FED', 'Drag to set the falling-edge dead-band FED')}</title>
                     <rect x={fedX - 10} y={96} width="20" height="40" fill="transparent" />
                     <rect x={fedX - 4} y={96} width="8" height="40" rx="3" fill="#fb923c" stroke="#0b1220" strokeWidth="1.5" />
                     <text x={fedLabel.x} y={151} textAnchor={fedLabel.anchor} fill="#fdba74" fontSize="15" fontWeight="700">
@@ -572,7 +594,7 @@ export function WaveformPanel({
 
                 {ch.wave.approximate && (
                   <text x={PAD_L + 8} y={80} fill="#f59e0b" fontSize="14">
-                    交叉 IN_MODE：波形为示意，寄存器配置见生成代码
+                    {t('交叉 IN_MODE：波形为示意，寄存器配置见生成代码', 'Crossed IN_MODE: waveform is illustrative; see generated code for register settings')}
                   </text>
                 )}
               </svg>
@@ -580,18 +602,23 @@ export function WaveformPanel({
               {ch.wave.swallowedA || ch.wave.swallowedB ? (
                 <p className="mt-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2.5 py-1.5 text-base text-rose-300">
                   <Icon name="alert" size={15} className="mr-1 inline align-[-2px]" />
-                  死区过大：{ch.wave.swallowedA ? 'A 相高电平' : ''}
-                  {ch.wave.swallowedA && ch.wave.swallowedB ? ' 与 ' : ''}
-                  {ch.wave.swallowedB ? 'B 相高电平' : ''} 已被完全吞掉，桥臂将失去驱动。
+                  {t('死区过大：', 'Dead-band too large: ')}
+                  {ch.wave.swallowedA ? t('A 相高电平', 'A high level') : ''}
+                  {ch.wave.swallowedA && ch.wave.swallowedB ? t(' 与 ', ' and ') : ''}
+                  {ch.wave.swallowedB ? t('B 相高电平', 'B high level') : ''}
+                  {t(' 已被完全吞掉，桥臂将失去驱动。', ' completely swallowed — the leg loses drive.')}
                 </p>
               ) : (
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-slate-400">
                   <span>
-                    死区时间：A 开通前 <strong className="font-mono text-amber-300">{ch.wave.deadTimeRiseNs.toFixed(0)} ns</strong>
-                    ，B 开通前 <strong className="font-mono text-orange-300">{ch.wave.deadTimeFallNs.toFixed(0)} ns</strong>
+                    {t('死区时间：A 开通前 ', 'Dead-band: before A turns on ')}
+                    <strong className="font-mono text-amber-300">{ch.wave.deadTimeRiseNs.toFixed(0)} ns</strong>
+                    {t('，B 开通前 ', ', before B turns on ')}
+                    <strong className="font-mono text-orange-300">{ch.wave.deadTimeFallNs.toFixed(0)} ns</strong>
                   </span>
                   <span className="font-mono">
-                    占空比损失 ≈ {Math.max(0, ch.cfg.duty - ch.wave.actualDutyAPct).toFixed(2)}%
+                    {t('占空比损失 ≈ ', 'Duty-cycle loss ≈ ')}
+                    {Math.max(0, ch.cfg.duty - ch.wave.actualDutyAPct).toFixed(2)}%
                   </span>
                   <span className="font-mono">T = {ch.tb.periodNs.toFixed(0)} ns</span>
                 </div>
@@ -604,10 +631,7 @@ export function WaveformPanel({
   );
 }
 
-export function modulationHint(project: ProjectState): string {
-  if (project.modulationMode === 'FIXED') return '固定占空比：适合 DC-DC / 移相控制';
-  const limit = maxLinearModIndex(project.modulationMode);
-  return `线性调制上限 M = ${limit.toFixed(4)}${project.modIndex > limit ? '（当前已过调制）' : ''}`;
-}
+// TODO(i18n): 该提示由 App.tsx 以普通函数调用（非组件），此处拿不到 useI18n()，暂保留中文。
+// 接入英文需要在 App 侧补一个语言参数。
 
 export { ModulationEnvelope };

@@ -1,6 +1,7 @@
 import type { ChangeEvent, RefObject } from 'react';
 import type { ViewMode } from '../types';
-import { Badge, Btn, Segmented, cx } from './ui';
+import { useI18n } from '../i18n';
+import { Badge, Btn, Segmented } from './ui';
 import { Icon } from './Icon';
 
 interface Props {
@@ -34,34 +35,31 @@ export function Header({
   subTopology,
   protection,
 }: Props) {
+  const { t, lang, toggleLang } = useI18n();
+
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#101215]/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-slate-800 bg-[#0b0c0d]/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1800px] flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/30">
-            <Icon name="activity" size={22} />
+          <span className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-700 text-slate-300">
+            <Icon name="activity" size={18} />
           </span>
           <div>
-            <h1 className="text-lg font-extrabold leading-tight tracking-tight text-white">
+            <h1 className="text-lg font-semibold leading-tight tracking-tight text-white">
               C2000 ePWM Tool
             </h1>
-            <p className="text-base leading-tight text-slate-400">
-              TI DSP 图形化 ePWM 设计器 · 死区仿真 / 移相同步 / SPWM·SVPWM / 代码生成
+            <p className="text-base leading-tight text-slate-500">
+              {t(
+                'TI DSP 图形化 ePWM 设计器 · 死区仿真 / 移相同步 / 代码生成',
+                'Graphical ePWM designer for TI C2000 · dead-band, phase sync, code generation',
+              )}
             </p>
           </div>
           <div className="ml-1 hidden flex-wrap items-center gap-1.5 xl:flex">
-            <Badge tone="sky" mono>
-              {deviceName}
-            </Badge>
-            <Badge tone="slate" mono>
-              {freqKhz} kHz
-            </Badge>
-            <Badge tone="slate" mono>
-              {subTopology}
-            </Badge>
-            <Badge tone={protection === '未启用' ? 'slate' : 'emerald'} mono>
-              TZ {protection}
-            </Badge>
+            <Badge mono>{deviceName}</Badge>
+            <Badge mono>{freqKhz} kHz</Badge>
+            <Badge mono>{subTopology}</Badge>
+            <Badge mono>TZ {protection}</Badge>
           </div>
         </div>
 
@@ -70,26 +68,29 @@ export function Header({
             value={viewMode}
             onChange={v => onView(v)}
             options={[
-              { value: 'SPLIT', label: '全部' },
-              { value: 'WAVE', label: '波形' },
-              { value: 'PINOUT', label: '引脚' },
+              { value: 'SPLIT', label: t('全部', 'All') },
+              { value: 'WAVE', label: t('波形', 'Waveform') },
+              { value: 'PINOUT', label: t('引脚', 'Pinout') },
             ]}
           />
-          <span className="mx-1 hidden h-6 w-px bg-slate-700 sm:block" />
+          <span className="mx-1 hidden h-5 w-px bg-slate-800 sm:block" />
           <Btn compact icon="upload" onClick={onImportClick}>
-            导入
+            {t('导入', 'Import')}
           </Btn>
           <Btn compact icon="download" onClick={onExportJson}>
-            导出
+            {t('导出', 'Export')}
           </Btn>
           <Btn compact icon="share" onClick={onShare}>
-            分享链接
+            {t('分享链接', 'Share link')}
           </Btn>
           <Btn compact icon="refresh" onClick={onReset}>
-            重置
+            {t('重置', 'Reset')}
           </Btn>
           <Btn compact variant="primary" icon="download" onClick={onDownloadCode}>
-            下载代码
+            {t('下载代码', 'Download')}
+          </Btn>
+          <Btn compact onClick={toggleLang} title={t('切换到英文', 'Switch to Chinese')}>
+            {lang === 'zh' ? 'EN' : '中文'}
           </Btn>
           <input
             ref={fileInputRef}
@@ -101,7 +102,7 @@ export function Header({
         </div>
       </div>
 
-      <div className={cx('mx-auto max-w-[1800px] px-4 pb-2 text-base text-slate-500 xl:hidden')}>
+      <div className="mx-auto max-w-[1800px] px-4 pb-2 text-base text-slate-500 xl:hidden">
         {deviceName} · {freqKhz} kHz · {subTopology} · TZ {protection}
       </div>
     </header>
