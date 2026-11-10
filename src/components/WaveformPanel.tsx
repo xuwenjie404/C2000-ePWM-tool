@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChannelConfig, Interval, ProjectState } from '../types';
 import type { HardwareModel, ResolvedChannel } from '../lib/hardware';
 import { computeModulationInstant, maxLinearModIndex } from '../lib/modulation';
-import { resolveWaveGeometry, tickToPixel } from '../lib/waveformGeometry';
+import {
+  defaultOriginTick,
+  resolveWaveGeometry,
+  scanHighRuns,
+  tickToCycleOffset,
+  tickToPixel,
+} from '../lib/waveformGeometry';
 import { Badge, Btn, Card, NumberBadge, PanelHeader, cx } from './ui';
 import { Icon } from './Icon';
 
@@ -57,24 +63,14 @@ function scanRuns(
   cyclePx: number,
   xs: number,
   xe: number,
+  originTick: number,
 ): { x0: number; x1: number }[] {
-  const runs: { x0: number; x1: number }[] = [];
-  const inHigh = (x: number): boolean => {
-    const rel = (((x - PAD_L - phasePx) % cyclePx) + cyclePx) % cyclePx;
-    const tick = (rel / cyclePx) * periodTicks;
-    return highs.some(h => tick >= h.start && tick < h.end);
-  };
-  let open: number | null = null;
-  for (let x = xs; x <= xe; x += 0.5) {
-    const high = inHigh(x);
-    if (high && open === null) open = x;
-    if (!high && open !== null) {
-      runs.push({ x0: open, x1: x });
-      open = null;
-    }
-  }
-  if (open !== null) runs.push({ x0: open, x1: xe });
-  return runs;
+  return scanHighRuns(
+    highs,
+    { plotStart: PAD_L + phasePx, cyclePx, periodTicks, originTick },
+    xs,
+    xe,
+  );
 }
 
 function stepPathFromRuns(
@@ -281,7 +277,7 @@ export function WaveformPanel({
       <PanelHeader
         icon="wave"
         title="波形示波器 · 死区与移相交互调节"
-        hint="拖动琥珀色手柄改 RED、橙色手柄改 FED、白色手柄改占空比、绿色圆点改移相角；波形由死区传递函数实时仿真，脉宽不足时会直接显示为被吞掉。"
+        hint="拖动琥珀色竖条改 RED、橙色竖条改 FED、白色竖条改占空比、绿色圆点改移相角；抓手都压在信号的真实跳变沿上。增减计数下脉冲以 CTR=PRD 为中心绘制，脉宽不足时会直接显示为被吞掉。"
         right={
           <>
             {project.modulationMode !== 'FIXED' && (
@@ -308,24 +304,29 @@ export function WaveformPanel({
           const phasePx = (ch.syncEnabled ? (((ch.cfg.phase % 360) + 360) % 360) / 360 : 0) * cyclePx;
           const xs = PAD_L;
           const xe = SVG_W - PAD_R;
+          // 绘图原点：增减计数取半周期，让脉冲居中成一整块（否则会跨零点分裂成两段）
+          const originTick = defaultOriginTick(periodTicks, project.countMode);
 
-          const runsA = scanRuns(ch.wave.highA, periodTicks, phasePx, cyclePx, xs, xe);
-          const runsB = scanRuns(ch.wave.highB, periodTicks, phasePx, cyclePx, xs, xe);
+          const runsA = scanRuns(ch.wave.highA, periodTicks, phasePx, cyclePx, xs, xe, originTick);
+          const runsB = scanRuns(ch.wave.highB, periodTicks, phasePx, cyclePx, xs, xe, originTick);
           const pathA = stepPathFromRuns(runsA, 26, 66, xs, xe);
           const pathB = stepPathFromRuns(runsB, 96, 136, xs, xe);
 
           /*
            * 抓手几何统一走 src/lib/waveformGeometry.ts，组件与单测共用同一份实现。
-           * 曾经在这里内联算过一次：漏掉 PAD_L 导致整体左移，跨零点脉冲又把下降沿
-           * 取成了周期边界 —— 这类错误肉眼极难发现，所以改由测试守住。
+           *
+           * 抓手放在**第一个周期**：读者眼睛从左往右扫，边沿和抓手在同一视野里，
+           * 才能看出「抓手压在沿上」。之前放在最后一个周期，抓手挤在右侧，
+           * 左边的边沿上什么都没有，视觉上就是"没对齐"。
            */
-          const windowStart = PAD_L + phasePx + cyclePx * (PERIODS - 1);
+          const windowStart = PAD_L + phasePx;
           const geo = resolveWaveGeometry({
             highA: ch.wave.highA,
             highB: ch.wave.highB,
             periodTicks,
             windowStart,
             cyclePx,
+            originTick,
           });
           const riseTick = geo.riseTick;
           const fallTick = geo.fallTick;
@@ -457,8 +458,8 @@ export function WaveformPanel({
                     const base = PAD_L + phasePx + k * cyclePx;
                     const redW = Math.max(0, (ch.dbRed / periodTicks) * cyclePx);
                     const fedW = Math.max(0, (ch.dbFed / periodTicks) * cyclePx);
-                    const riseX = base + (riseTick / periodTicks) * cyclePx;
-                    const fallX = base + (fallTick / periodTicks) * cyclePx;
+                    const riseX = base + tickToCycleOffset(riseTick, geo.mapping);
+                    const fallX = base + tickToCycleOffset(fallTick, geo.mapping);
                     return (
                       <g key={k}>
                         {redW > 0.5 && (
@@ -497,9 +498,9 @@ export function WaveformPanel({
                 <path d={pathA} fill="none" stroke={color.main} strokeWidth="2.6" strokeLinejoin="round" />
 
                 {/*
-                  抓手贴在信号跳变沿上（沿用原 dsp_epwm.tsx 的交互）：
-                  竖条正好压住沿的位置，标签紧随其右，靠近右边界时自动翻到左侧。
-                  每个抓手额外叠一块透明矩形，把可拖拽区域加宽到 18px。
+                  抓手 = 贯穿整个波形带的竖条，竖条的左右边就压在跳变沿上。
+                  只画半截会让它看起来"浮在带子里"，所以这里铺满 26~66 / 96~136。
+                  标签放到带外面（上沿 / 下沿），既不会被波形挡住，也不会互相压。
                 */}
                 {ch.syncEnabled && (
                   <g
@@ -509,9 +510,9 @@ export function WaveformPanel({
                     }
                   >
                     <title>{`拖动设置移相角（当前 TBPHS = ${ch.phase.tbphs}）`}</title>
-                    <line x1={phaseX} y1={26} x2={phaseX} y2={136} stroke="#34d399" strokeDasharray="3 5" strokeWidth="1.2" opacity="0.4" />
-                    <rect x={phaseX - 9} y={26} width="18" height="42" fill="transparent" />
-                    <circle cx={phaseX} cy={40} r="7" fill="#34d399" stroke="#0b1220" strokeWidth="2" />
+                    <line x1={phaseX} y1={26} x2={phaseX} y2={136} stroke="#34d399" strokeDasharray="3 5" strokeWidth="1.2" opacity="0.45" />
+                    <rect x={phaseX - 10} y={26} width="20" height="110" fill="transparent" />
+                    <circle cx={phaseX} cy={76} r="7" fill="#34d399" stroke="#0b1220" strokeWidth="2" />
                   </g>
                 )}
 
@@ -523,9 +524,9 @@ export function WaveformPanel({
                     }
                   >
                     <title>拖动设置上升沿死区 RED</title>
-                    <rect x={redX - 9} y={26} width="18" height="40" fill="transparent" />
-                    <rect x={redX - 5} y={26} width="10" height="22" rx="2" fill="#f59e0b" stroke="#0b1220" strokeWidth="1.5" />
-                    <text x={redLabel.x} y={42} textAnchor={redLabel.anchor} fill="#fcd34d" fontSize="15" fontWeight="700">
+                    <rect x={redX - 10} y={26} width="20" height="40" fill="transparent" />
+                    <rect x={redX - 4} y={26} width="8" height="40" rx="3" fill="#f59e0b" stroke="#0b1220" strokeWidth="1.5" />
+                    <text x={redLabel.x} y={22} textAnchor={redLabel.anchor} fill="#fcd34d" fontSize="15" fontWeight="700">
                       RED {ch.cfg.redNs}ns
                     </text>
                   </g>
@@ -538,9 +539,9 @@ export function WaveformPanel({
                   }
                 >
                   <title>拖动设置占空比</title>
-                  <rect x={dutyX - 9} y={26} width="18" height="40" fill="transparent" />
-                  <rect x={dutyX - 5} y={34} width="10" height="26" rx="2" fill="#f8fafc" stroke="#0284c7" strokeWidth="2" />
-                  <text x={dutyLabel.x} y={56} textAnchor={dutyLabel.anchor} fill="#e2e8f0" fontSize="15" fontWeight="700">
+                  <rect x={dutyX - 10} y={26} width="20" height="40" fill="transparent" />
+                  <rect x={dutyX - 4} y={26} width="8" height="40" rx="3" fill="#f8fafc" stroke="#0284c7" strokeWidth="2" />
+                  <text x={dutyLabel.x} y={80} textAnchor={dutyLabel.anchor} fill="#e2e8f0" fontSize="15" fontWeight="700">
                     Duty {ch.cfg.duty.toFixed(1)}%
                   </text>
                 </g>
@@ -553,9 +554,9 @@ export function WaveformPanel({
                     }
                   >
                     <title>拖动设置下降沿死区 FED</title>
-                    <rect x={fedX - 9} y={96} width="18" height="40" fill="transparent" />
-                    <rect x={fedX - 5} y={96} width="10" height="22" rx="2" fill="#fb923c" stroke="#0b1220" strokeWidth="1.5" />
-                    <text x={fedLabel.x} y={112} textAnchor={fedLabel.anchor} fill="#fdba74" fontSize="15" fontWeight="700">
+                    <rect x={fedX - 10} y={96} width="20" height="40" fill="transparent" />
+                    <rect x={fedX - 4} y={96} width="8" height="40" rx="3" fill="#fb923c" stroke="#0b1220" strokeWidth="1.5" />
+                    <text x={fedLabel.x} y={151} textAnchor={fedLabel.anchor} fill="#fdba74" fontSize="15" fontWeight="700">
                       FED {ch.cfg.fedNs}ns
                     </text>
                   </g>

@@ -1,111 +1,140 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultProject, sanitizeProject } from './project';
 import { resolveHardware } from './hardware';
-import { collectEdges, levelAtTick, pickWindowEdge, resolveWaveGeometry, tickToPixel } from './waveformGeometry';
+import {
+  collectEdges,
+  defaultOriginTick,
+  levelAtTick,
+  pickWindowEdge,
+  resolveWaveGeometry,
+  scanHighRuns,
+  tickToCycleOffset,
+  tickToPixel,
+} from './waveformGeometry';
 
 /** 与 WaveformPanel 保持一致的画布常量 */
 const PAD_L = 58;
 const PAD_R = 14;
 const SVG_W = 860;
-const PERIODS = 2;
 const PLOT_W = SVG_W - PAD_L - PAD_R;
-const CYCLE_PX = PLOT_W / PERIODS;
+const CYCLE_PX = PLOT_W / 2;
 
 function geometryOf(project = createDefaultProject()) {
   const hw = resolveHardware(project);
   const ch = hw.master;
-  const windowStart = PAD_L + CYCLE_PX * (PERIODS - 1);
+  const T = ch.wave.periodTicks;
+  const originTick = defaultOriginTick(T, project.countMode);
   const geo = resolveWaveGeometry({
     highA: ch.wave.highA,
     highB: ch.wave.highB,
-    periodTicks: ch.wave.periodTicks,
-    windowStart,
+    periodTicks: T,
+    windowStart: PAD_L,
     cyclePx: CYCLE_PX,
+    originTick,
   });
-  return { hw, ch, geo, windowStart };
+  return { project, ch, geo, T, originTick };
 }
 
-describe('抓手几何：必须落在波形的真实跳变沿上', () => {
-  it('RED 抓手 = A 相上升沿（低 -> 高）', () => {
-    const { ch, geo } = geometryOf();
-    const T = ch.wave.periodTicks;
+describe('抓手必须落在真实跳变沿上', () => {
+  it('RED = A 相上升沿（低 -> 高）', () => {
+    const { ch, geo, T } = geometryOf();
     expect(levelAtTick(ch.wave.highA, geo.riseTick - 1, T)).toBe(false);
     expect(levelAtTick(ch.wave.highA, geo.riseTick + 1, T)).toBe(true);
   });
 
-  it('Duty 抓手 = A 相下降沿（高 -> 低）', () => {
-    const { ch, geo } = geometryOf();
-    const T = ch.wave.periodTicks;
+  it('Duty = A 相下降沿（高 -> 低）', () => {
+    const { ch, geo, T } = geometryOf();
     expect(levelAtTick(ch.wave.highA, geo.fallTick - 1, T)).toBe(true);
     expect(levelAtTick(ch.wave.highA, geo.fallTick + 1, T)).toBe(false);
   });
 
-  it('FED 抓手 = B 相上升沿（低 -> 高）', () => {
-    const { ch, geo } = geometryOf();
-    const T = ch.wave.periodTicks;
+  it('FED = B 相上升沿（低 -> 高）', () => {
+    const { ch, geo, T } = geometryOf();
     expect(levelAtTick(ch.wave.highB, geo.fedTick - 1, T)).toBe(false);
     expect(levelAtTick(ch.wave.highB, geo.fedTick + 1, T)).toBe(true);
   });
+});
 
-  it('三个抓手都落在绘图区内，不会跑到左边距外面', () => {
+describe('视觉直觉：上升沿在左、下降沿在右', () => {
+  it('RED 的 x 小于 Duty 的 x（增减计数下脉冲居中成一整块）', () => {
+    for (const duty of [10, 30, 50, 70, 90]) {
+      const p = sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty }] });
+      const { geo } = geometryOf(p);
+      const riseX = tickToPixel(geo.riseTick, geo.mapping);
+      const fallX = tickToPixel(geo.fallTick, geo.mapping);
+      expect(riseX).toBeLessThan(fallX);
+    }
+  });
+
+  it('FED 紧跟在 Duty 之后（间隔 = 一个死区宽度）', () => {
+    const { geo, ch } = geometryOf();
+    const fallX = tickToPixel(geo.fallTick, geo.mapping);
+    const fedX = tickToPixel(geo.fedTick, geo.mapping);
+    const expected = (ch.dbFed / ch.wave.periodTicks) * CYCLE_PX;
+    expect(fedX - fallX).toBeCloseTo(expected, 3);
+  });
+
+  it('占空比越大，脉冲越宽，但始终完整落在一个周期内', () => {
+    const widths = [10, 50, 90].map(duty => {
+      const p = sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty }] });
+      const { geo, T } = geometryOf(p);
+      const w = tickToCycleOffset(geo.fallTick, geo.mapping) - tickToCycleOffset(geo.riseTick, geo.mapping);
+      expect(w).toBeGreaterThan(0);
+      expect(w).toBeLessThanOrEqual(CYCLE_PX);
+      void T;
+      return w;
+    });
+    expect(widths[0]).toBeLessThan(widths[1]);
+    expect(widths[1]).toBeLessThan(widths[2]);
+  });
+});
+
+describe('坐标基准回归', () => {
+  it('三个抓手都落在绘图区内', () => {
     const { geo } = geometryOf();
-    const xs = [geo.riseTick, geo.fallTick, geo.fedTick].map(t => tickToPixel(t, geo.mapping));
-    for (const x of xs) {
+    for (const tick of [geo.riseTick, geo.fallTick, geo.fedTick]) {
+      const x = tickToPixel(tick, geo.mapping);
       expect(x).toBeGreaterThanOrEqual(PAD_L);
       expect(x).toBeLessThanOrEqual(SVG_W - PAD_R);
     }
   });
 
-  it('回归：抓手不能漏掉左边距（曾经整体左移 58px）', () => {
-    const { geo, windowStart } = geometryOf();
-    // 默认工程 50% 占空比、300ns 死区：上升沿位于周期约 75% 处
+  it('回归：不能漏掉左边距（曾经整体左移 58px）', () => {
+    const { geo } = geometryOf();
+    // 50% 占空比下上升沿在绘制周期的约 25% 处，加上左边距后必然 > PAD_L + 10% 周期
     const riseX = tickToPixel(geo.riseTick, geo.mapping);
-    expect(riseX).toBeGreaterThan(windowStart + CYCLE_PX * 0.6);
-    expect(geo.mapping.windowStart).toBe(windowStart);
+    expect(riseX).toBeGreaterThan(PAD_L + CYCLE_PX * 0.1);
+    expect(geo.mapping.windowStart).toBe(PAD_L);
   });
 
-  it('回归：跨零点脉冲的下降沿取第二段末尾，而不是周期边界', () => {
-    const { ch, geo } = geometryOf();
-    const T = ch.wave.periodTicks;
-    // 下降沿应落在周期的 25%（= C/T）附近，而不是 100%
-    expect(geo.fallTick / T).toBeLessThan(0.4);
-    expect(geo.fallTick).toBeGreaterThan(0);
+  it('回归：绘图原点默认在半周期，脉冲不再跨零点分裂', () => {
+    const { geo, T } = geometryOf();
+    expect(geo.mapping.originTick).toBe(Math.round(T / 2));
+    // 高电平区间应当是一整块（跨零点被拆成两段时，这里的宽度会异常）
+    const riseOff = tickToCycleOffset(geo.riseTick, geo.mapping);
+    const fallOff = tickToCycleOffset(geo.fallTick, geo.mapping);
+    expect(fallOff - riseOff).toBeCloseTo(0.5 * CYCLE_PX, -1);
   });
 });
 
-describe('几何随参数变化仍然正确', () => {
+describe('参数变化后仍然正确', () => {
   const cases: { name: string; project: ReturnType<typeof sanitizeProject> }[] = [
-    {
-      name: '10% 占空比',
-      project: sanitizeProject({ ...createDefaultProject(), freqKhz: 20, channels: [{ id: 1, duty: 10 }] }),
-    },
-    {
-      name: '90% 占空比',
-      project: sanitizeProject({ ...createDefaultProject(), freqKhz: 20, channels: [{ id: 1, duty: 90 }] }),
-    },
-    {
-      name: '单向计数',
-      project: sanitizeProject({ ...createDefaultProject(), countMode: 'UP', freqKhz: 20 }),
-    },
+    { name: '10% 占空比', project: sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty: 10 }] }) },
+    { name: '90% 占空比', project: sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty: 90 }] }) },
+    { name: '单向计数', project: sanitizeProject({ ...createDefaultProject(), countMode: 'UP' }) },
     {
       name: '大死区 3000ns',
-      project: sanitizeProject({ ...createDefaultProject(), freqKhz: 20, channels: [{ id: 1, redNs: 3000, fedNs: 3000 }] }),
+      project: sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, redNs: 3000, fedNs: 3000 }] }),
+    },
+    {
+      name: '1kHz 低频',
+      project: sanitizeProject({ ...createDefaultProject(), freqKhz: 1 }),
     },
   ];
 
   for (const c of cases) {
-    it(`${c.name}：三个抓手都贴合真实边沿`, () => {
-      const hw = resolveHardware(c.project);
-      const ch = hw.master;
-      const T = ch.wave.periodTicks;
-      const geo = resolveWaveGeometry({
-        highA: ch.wave.highA,
-        highB: ch.wave.highB,
-        periodTicks: T,
-        windowStart: PAD_L + CYCLE_PX * (PERIODS - 1),
-        cyclePx: CYCLE_PX,
-      });
-
+    it(`${c.name}：抓手仍贴合真实边沿`, () => {
+      const { ch, geo, T } = geometryOf(c.project);
       expect(levelAtTick(ch.wave.highA, geo.riseTick - 1, T)).toBe(false);
       expect(levelAtTick(ch.wave.highA, geo.riseTick + 1, T)).toBe(true);
       expect(levelAtTick(ch.wave.highA, geo.fallTick - 1, T)).toBe(true);
@@ -116,30 +145,78 @@ describe('几何随参数变化仍然正确', () => {
   }
 });
 
-describe('collectEdges / pickWindowEdge', () => {
-  it('把区间展开成有序的升/降沿', () => {
-    const edges = collectEdges([
-      { start: 900, end: 1200 },
-      { start: 0, end: 300 },
-    ]);
+describe('collectEdges：过滤跨零点产生的假沿', () => {
+  it('跨零点的两段区间不会在 0 处产生假上升沿', () => {
+    // 高电平 [0,300) 与 [900,1200)：0 处前后都是高，只有 300 与 900 是真实沿
+    const edges = collectEdges(
+      [
+        { start: 900, end: 1200 },
+        { start: 0, end: 300 },
+      ],
+      1200,
+    );
     expect(edges).toEqual([
-      { tick: 0, rising: true },
       { tick: 300, rising: false },
       { tick: 900, rising: true },
-      { tick: 1200, rising: false },
     ]);
   });
 
-  it('窗口边界上的沿（tick = 周期末尾）被排除，避免抓手贴到右边缘', () => {
-    const edges = collectEdges([{ start: 900, end: 1200 }]);
-    const mapping = { windowStart: PAD_L, cyclePx: CYCLE_PX, periodTicks: 1200 };
-    const tick = pickWindowEdge(edges, false, mapping, 600);
-    // 1200 映射到窗口右边界外，应回退到备选值
-    expect(tick).toBe(600);
+  it('整周期为高时不产生任何沿', () => {
+    expect(collectEdges([{ start: 0, end: 1200 }], 1200)).toEqual([]);
   });
 
-  it('没有候选沿时回退到 fallback，不会返回 undefined', () => {
-    const mapping = { windowStart: PAD_L, cyclePx: CYCLE_PX, periodTicks: 1200 };
-    expect(pickWindowEdge([], true, mapping, 42)).toBe(42);
+  it('空区间返回空列表', () => {
+    expect(collectEdges([], 1200)).toEqual([]);
+  });
+});
+
+describe('像素级对齐：画出来的跳变 = 抓手所在位置', () => {
+  it('阶梯波的每个跳变沿都与抓手的 x 相差 < 1.2px', () => {
+    for (const duty of [10, 50, 90]) {
+      const p = sanitizeProject({ ...createDefaultProject(), channels: [{ id: 1, duty }] });
+      const { ch, geo, originTick } = geometryOf(p);
+      const runs = scanHighRuns(
+        ch.wave.highA,
+        { plotStart: PAD_L, cyclePx: CYCLE_PX, periodTicks: ch.wave.periodTicks, originTick },
+        PAD_L,
+        SVG_W - PAD_R,
+      );
+      const boundaries = runs.flatMap(r => [r.x0, r.x1]);
+      expect(boundaries.length).toBeGreaterThan(0);
+
+      for (const tick of [geo.riseTick, geo.fallTick]) {
+        const x = tickToPixel(tick, geo.mapping);
+        const nearest = Math.min(...boundaries.map(b => Math.abs(b - x)));
+        expect(nearest).toBeLessThan(1.2);
+      }
+    }
+  });
+
+  it('B 相抓手同样落在阶梯跳变上', () => {
+    const { ch, geo, originTick } = geometryOf();
+    const runs = scanHighRuns(
+      ch.wave.highB,
+      { plotStart: PAD_L, cyclePx: CYCLE_PX, periodTicks: ch.wave.periodTicks, originTick },
+      PAD_L,
+      SVG_W - PAD_R,
+    );
+    const boundaries = runs.flatMap(r => [r.x0, r.x1]);
+    const fedX = tickToPixel(geo.fedTick, geo.mapping);
+    expect(Math.min(...boundaries.map(b => Math.abs(b - fedX)))).toBeLessThan(1.2);
+  });
+});
+
+describe('pickWindowEdge 边界', () => {
+  it('窗口内没有候选时回退到 fallback，不返回窗口外的值', () => {
+    const mapping = { windowStart: PAD_L, cyclePx: 10, periodTicks: 1200, originTick: 0 };
+    // tick=1150 映射到窗口右边界之外，应回退
+    const edges = [{ tick: 1150, rising: false }];
+    expect(pickWindowEdge(edges, false, mapping, 42)).toBe(42);
+  });
+
+  it('窗口内的候选会被选中', () => {
+    const mapping = { windowStart: PAD_L, cyclePx: CYCLE_PX, periodTicks: 1200, originTick: 0 };
+    const edges = [{ tick: 300, rising: true }];
+    expect(pickWindowEdge(edges, true, mapping, 42)).toBe(300);
   });
 });
